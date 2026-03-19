@@ -55,3 +55,13 @@ function quad2cubeBezier(qp0,qp1,qp2)
 	end
 	return cp0,cp1,cp2,cp3 
 end
+--[[worked]]
+
+function pointOnBezier(cp0,cp1,cp2,cp3,value)
+	--[[Hàm tìm vị trí của điểm có t=value (0..1) trên đường bezier cấp 3]]
+	--[[Thuật toán: với lerp2d(t,t,posA->posB)=(A,B,t)]]
+	--[[pos = ( ((cp0,cp1,t),(cp1,cp2,t),t) , ((cp1,cp2,t),(cp2,cp3,t),t) , t )]]
+	--[[Chú ý: cần hàm lerp2d(x,y,newrange{left,top,right,bottom}) của lib 1]]
+	local pos = 
+	return ''
+end

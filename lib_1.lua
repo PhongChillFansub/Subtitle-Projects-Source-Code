@@ -2,7 +2,7 @@ script_name = "[Level 1] Lib"
 script_description = "[Phòng Chill Fansub] Thư viện hàm áp dụng cho hiệu ứng Aegisub."
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[Cập nhật open beta 14.03, ngày 18/3/2026 (port từ project riêng tư): sửa lỗi multiloop()]]
+--[[Cập nhật open beta 14.04, ngày 19/3/2026: sửa cmt của lerp2d() và unlerp2d()]]
 
 function cmt()
   return ''
@@ -56,17 +56,18 @@ end
 
 function lerp2d(x,y,newrange)
   --[[Hàm biến đổi tọa độ tuyến tính (linear interpolate) từ 0..1 (2 chiều) thành trong vùng mới]]
-  --[[Đầu vào: x, y cũ, {left,top,right,bottom} mới]]
-  --[[Đầu ra: x, y mới]]
+  --[[Đầu vào: x, y (0..1), vùng {x1,y1,x2,y2} mới (từ điểm A(x1,y1) đến B(x2,y2) hoặc trong hcn cạnh // trục tọa độ, có đường chéo AB)]]
+  --[[Đầu ra: x, y (tọa độ trong vùng mới)]]
   local itpl = _G.interpolate
   return itpl(x,newrange[1],newrange[3]),itpl(y,newrange[2],newrange[4])
 end
 
 function unlerp2d(x,y,oldrange)
   --[[Hàm biến đổi tọa độ tuyến tính (linear interpolate) từ trong vùng cũ (2 chiều) thành 0..1 (2 chiều)]]
-  --[[Đầu vào: x, y cũ, {left,top,right,bottom} mới]]
-  local invp = function(v,v0,v1) return (v-v0)/(v1-v0) end
-  return invp(x,newrange[1],newrange[3]),itpl(y,newrange[2],newrange[4])
+  --[[Đầu vào: tọa độ x, y cũ, {x1,y1,x2,y2} cũ (từ điểm A(x1,y1) đến B(x2,y2) hoặc trong hcn cạnh // trục tọa độ, có đường chéo AB)]]
+  --[[Đầu ra: x,y mới (0..1)]]
+  local invp = function(v,v0,v1) return (v1==v0 and 0 or (v-v0)/(v1-v0)) end
+  return invp(x,newrange[1],newrange[3]),invp(y,newrange[2],newrange[4])
 end
 
 function interpolate_color_2d(x,y,crange)
