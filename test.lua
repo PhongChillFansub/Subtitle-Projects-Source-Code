@@ -56,8 +56,8 @@ function quad2cubeBezier(qp0,qp1,qp2)
 	return cp0,cp1,cp2,cp3 
 end
 
-function pointOnBezier(cp0,cp1,cp2,cp3,value)
-	--[[Hàm tìm vị trí của điểm có t=value (0..1) trên đường bezier cấp 3]]
+function pointOnCBezier(cp0,cp1,cp2,cp3,value)
+	--[[Hàm tìm vị trí của điểm có t=value (0..1) trên đường bezier cấp 3 (cubic)]]
 	--[[Thuật toán: với lerp2d(value,posA->posB)=(A,B)]]
 	--[[pos = ( ((cp0,cp1),(cp1,cp2)) , ((cp1,cp2),(cp2,cp3)) )]]
 	local itpl0 = function(posA,posB) 
@@ -66,6 +66,21 @@ function pointOnBezier(cp0,cp1,cp2,cp3,value)
 	end
 	local optimized12 = itpl0(cp1,cp2)
 	local pos = itpl0( itpl0(itpl0(cp0,cp1),optimized12) , itpl0(optimized12,itpl0(cp2,cp3)) )
-	for i=1,2 do pos[i] = string.format('%.0f',pos[i]) end
+	for i=1,2 do 
+		pos[i] = string.format('%.0f',pos[i]) 
+	end
 	return pos
+end
+
+function pointOnQBezier(qp0,qp1,qp2,value) 
+	--[[Hàm tìm vị trí của điểm có t=value (0..1) trên đường bezier cấp 2 (quadratic)]] 
+	local itpl0 = function(posA,posB) 
+		local itpl = _G.interpolate 
+		return {itpl(value,posA[1],posB[1]),itpl(value,posA[2],posB[2])} 
+	end 
+	local pos = itpl0(itpl0(qp0,qp1),itpl0(qp1,qp2)) 
+	for i=1,2 do 
+		pos[i] = string.format('%.0f',pos[i]) 
+	end 
+	return pos 
 end
