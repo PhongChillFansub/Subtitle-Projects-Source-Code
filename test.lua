@@ -42,3 +42,16 @@ function AutoTags_reverse_engineering(diff_dur,value1,value2)
 	end
 	return output
 end
+
+function quad2cubeBezier(qp0,qp1,qp2)
+	--[[Hàm biến đổi tọa độ đường Bezier (2D) cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
+	--[[Thuật toán: cp0=qp0, cp1=cp0+2/3*(qp1-qp0), cp2=qp2+2/3*(qp1-qp2), cp3=qp2]]
+	--[[Cấu trúc điểm ?p?: (1: x, 2:y)]]
+	local tblcpy = _G.table.copy
+	local cp0, cp3 = tblcpy(qp0), tblcpy(qp2)
+	for plane=1,2 do
+		cp1[plane]=cp0[plane]+2/3*(qp1[plane]-qp0[plane])
+	end
+
+	return cp0,cp1,cp2,cp3 
+end
