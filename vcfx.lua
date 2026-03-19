@@ -5,7 +5,6 @@ script_version = "2.0"
 --[[v2.0 alpha 0.20, 20/3/2026]]
 --[[Cập nhật vcfx v2.0: cho phép áp dụng nhiều bảng màu 2x2 trong 1 mục tiêu.]]
 
-
 function vcFallback(vc_input) 
     --[[Hàm làm đầy dữ liệu màu vector trong trường hợp đầu vào (vc_input) không đủ số lượng màu]]
     --[[Cấu trúc đầu vào bảng màu đơn vc_input[i]: i: stt màu (1-4) theo tag \an (7,9,1,3), tương tự \vc]] 
