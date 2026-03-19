@@ -2,8 +2,9 @@ script_name = "[Level 2] vcfx"
 script_description = "[Phòng Chill Fansub] Effect màu vector (vector color, \\vc) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
+--[[v2.0 alpha 0.20, 20/3/2026]]
 --[[Cập nhật vcfx v2.0: cho phép áp dụng nhiều bảng màu 2x2 trong 1 mục tiêu.]]
---[[alpha 0.19, 18/3/2026]]
+
 
 function vcFallback(vc_input) 
     --[[Hàm làm đầy dữ liệu màu vector trong trường hợp đầu vào (vc_input) không đủ số lượng màu]]
