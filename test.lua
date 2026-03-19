@@ -50,18 +50,22 @@ function quad2cubeBezier(qp0,qp1,qp2)
 	local tblcpy = _G.table.copy
 	local cp0, cp1, cp2, cp3 = tblcpy(qp0), {0,0}, {0,0}, tblcpy(qp2)
 	for plane=1,2 do
-		cp1[plane]=string.format('%.0f',cp0[plane]+2/3*(qp1[plane]-qp0[plane]))
+		cp1[plane]=string.format('%.0f',qp0[plane]+2/3*(qp1[plane]-qp0[plane]))
 		cp2[plane]=string.format('%.0f',qp2[plane]+2/3*(qp1[plane]-qp2[plane]))
 	end
 	return cp0,cp1,cp2,cp3 
 end
---[[worked]]
 
 function pointOnBezier(cp0,cp1,cp2,cp3,value)
 	--[[Hàm tìm vị trí của điểm có t=value (0..1) trên đường bezier cấp 3]]
-	--[[Thuật toán: với lerp2d(t,t,posA->posB)=(A,B,t)]]
-	--[[pos = ( ((cp0,cp1,t),(cp1,cp2,t),t) , ((cp1,cp2,t),(cp2,cp3,t),t) , t )]]
-	--[[Chú ý: cần hàm lerp2d(x,y,newrange{left,top,right,bottom}) của lib 1]]
-	local pos = 
-	return ''
+	--[[Thuật toán: với lerp2d(value,posA->posB)=(A,B)]]
+	--[[pos = ( ((cp0,cp1),(cp1,cp2)) , ((cp1,cp2),(cp2,cp3)) )]]
+	local itpl0 = function(posA,posB) 
+		local itpl = _G.interpolate
+		return {itpl(value,posA[1],posB[1]),itpl(value,posA[2],posB[2])}
+	end
+	local optimized12 = itpl0(cp1,cp2)
+	local pos = itpl0( itpl0(itpl0(cp0,cp1),optimized12) , itpl0(optimized12,itpl0(cp1,cp3)) )
+	for i=1,2 do pos[i] = string.format('%.0f',pos[i]) end
+	return pos
 end
