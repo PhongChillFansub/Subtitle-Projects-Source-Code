@@ -65,7 +65,7 @@ function pointOnBezier(cp0,cp1,cp2,cp3,value)
 		return {itpl(value,posA[1],posB[1]),itpl(value,posA[2],posB[2])}
 	end
 	local optimized12 = itpl0(cp1,cp2)
-	local pos = itpl0( itpl0(itpl0(cp0,cp1),optimized12) , itpl0(optimized12,itpl0(cp1,cp3)) )
+	local pos = itpl0( itpl0(itpl0(cp0,cp1),optimized12) , itpl0(optimized12,itpl0(cp2,cp3)) )
 	for i=1,2 do pos[i] = string.format('%.0f',pos[i]) end
 	return pos
 end
