@@ -2,7 +2,7 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo cong bezier (\\moves) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[alpha 0.0 19/3/2026]]
+--[[alpha 0.1 19/3/2026]]
 
 function q2cBezier(qp0,qp1,qp2)
 	--[[Hàm biến đổi tọa độ (2d) đường cong Bezier cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
@@ -17,6 +17,18 @@ function q2cBezier(qp0,qp1,qp2)
 	return cp0,cp1,cp2,cp3 
 end
 
+function pointOnQBezier(qp0,qp1,qp2,value) 
+	--[[Hàm tìm vị trí của điểm có t=value (0..1) trên đường bezier cấp 2 (quadratic)]] 
+	local itpl0 = function(posA,posB) 
+		local itpl = _G.interpolate 
+		return {itpl(value,posA[1],posB[1]),itpl(value,posA[2],posB[2])} 
+	end 
+	local pos = itpl0(itpl0(qp0,qp1),itpl0(qp1,qp2)) 
+	for i=1,2 do 
+		pos[i] = string.format('%.0f',pos[i]) 
+	end 
+	return pos 
+end
 
 function pointOnCBezier(cp0,cp1,cp2,cp3,value)
 	--[[Hàm tìm vị trí của điểm có t=value (0..1) trên đường bezier cấp 3 (cubic)]]
