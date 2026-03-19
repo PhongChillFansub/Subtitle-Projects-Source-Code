@@ -50,8 +50,8 @@ function quad2cubeBezier(qp0,qp1,qp2)
 	local tblcpy = _G.table.copy
 	local cp0, cp1, cp2, cp3 = tblcpy(qp0), {0,0}, {0,0}, tblcpy(qp2)
 	for plane=1,2 do
-		cp1[plane]=cp0[plane]+2/3*(qp1[plane]-qp0[plane])
-		cp2[plane]=qp2[plane]+2/3*(qp1[plane]-qp2[plane])
+		cp1[plane]=string.format('%.0f',cp0[plane]+2/3*(qp1[plane]-qp0[plane]))
+		cp2[plane]=string.format('%.0f',=qp2[plane]+2/3*(qp1[plane]-qp2[plane]))
 	end
 	return cp0,cp1,cp2,cp3 
 end
