@@ -59,3 +59,18 @@ function minimax_approx(segments)
 	return output 
 end
 --[[Hàm cũ, không sử dụng nữa]]
+
+function WingMovement(overall_dur,move_dur,movement1,movement2)
+	--[[Bản chất: hàm chia nhỏ overall_dur thành các đoạn dài move_dur,...]]
+	--[[và mỗi move_dur xen kẽ 1 trong 2 lệnh movement1 hoặc movement2]]
+	--[[Tương tự AutoTags(), nhưng có thêm overall_dur]]
+	local output, segments = {}, math.ceil(overall_dur/move_dur)
+	--[[segments làm tròn lên.]]
+	for i=1,segments do
+		if movement1 and movement2 then
+			--[[Chỉ kích hoạt khi tồn tại cả 2 lệnh.]]
+			output[#output+1] = string.format('\\t(%.0f,%.0f,\\%s)',(i-1)*move_dur,i*move_dur,i%2==0 and movement1 or movement2)
+		end
+	end
+	return _G.table.concat(output)
+end
