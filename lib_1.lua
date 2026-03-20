@@ -2,7 +2,7 @@ script_name = "[Level 1] Lib"
 script_description = "[Phòng Chill Fansub] Thư viện hàm áp dụng cho hiệu ứng Aegisub."
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[Cập nhật open beta 14.04, ngày 19/3/2026: sửa cmt của lerp2d() và unlerp2d()]]
+--[[beta 14.05 20/3/2026]]
 
 function cmt()
   return ''
@@ -203,18 +203,15 @@ function multiloop(limit_table)
 end
 --[[multiloop(): hàm lặp lại maxloop() theo nhiều chiều, không sử dụng decode().]]
 
-function multiloopX(limit_table)
-  for _, value in ipairs(limit_table) do
-    maxjm = (maxjm or 1)*value
-  end
-  jm = {}
-  local dc = decode()
-  for index = 1,maxjm do
-    jm[index]=dc(i0,limit_table)
-  end
-  return maxloop(maxjm)
-end
---[[multiloopX(): hàm lặp lại maxloop() theo nhiều chiều, sử dụng decode().]]
+function time4loop(offset_start,offset_end,base_start,base_end)
+  --[[Hàm xử lí thời gian của tag \\t trong các entity do maxloop() và multiloop()]]
+  --[[Đầu vào: offset_start-end do loop()]]
+  --[[Đầu vào: base_start-end không phụ thuộc loop()]]
+  --[[Bài toán: do base_start-end nằm ngoài vùng của offset_start-end]]
+  --[[Đầu ra: start, end đã xử lí, interpolated_start-end]]
+  if 
+  --[[TH1. chỉ offset_start nằm ngoài base_time]]
+
 
 
 function jf(index,plane) 
