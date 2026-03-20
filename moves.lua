@@ -2,7 +2,7 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo cong bezier (\\moves) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 1.0, 20/3/2026]]
+--[[beta 1.1, 20/3/2026]]
 
 function q2cBezier(qp0,qp1,qp2)
 	--[[Hàm biến đổi tọa độ (2d) đường cong Bezier cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
@@ -126,3 +126,17 @@ function moves3j(j)
 	}
 	return _G.table.concat(output,',')
 end
+
+function m3p(bezier,offset)
+	--[[Hàm xử lí tọa độ đầu vào cho move3s()]]
+	--[[Đầu vào: đường bezier {{x1,y1},{x2,y2},{x3,y3}}, offset: tọa độ mốc (vd: $scenter,$smiddle)]]
+	--[[Đầu ra: "x1,y1,x2,y2,x3,y3" đã tính toán]]
+	output = {
+		bezier[1][1]+offset[1],
+		bezier[1][2]+offset[2],
+		bezier[2][1]+offset[1],
+		bezier[2][2]+offset[2],
+		bezier[3][1]+offset[1],
+		bezier[3][2]+offset[2],
+	}
+	return _G.table.unpack(output)
