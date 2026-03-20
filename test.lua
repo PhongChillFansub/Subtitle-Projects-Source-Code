@@ -36,10 +36,10 @@ function AutoTags_reverse_engineering(diff_dur,value1,value2)
 				local select = value2
 			end
 		end
-		concat_table = {output,string.format('\\t(%.0f,%.0f,\\%s)',(i-1)*diff_dur,i*diff_dur,select)}
+		concat_table[#concat_table+1] = string.format('\\t(%.0f,%.0f,\\%s)',(i-1)*diff_dur,i*diff_dur,select)
 		--[[tag \t(<thời gian của segments>,\<tag trong phần select>)--]]
-		output = _G.table.concat(concat_table)
 	end
+	output = _G.table.concat(concat_table)
 	return output
 end
 
