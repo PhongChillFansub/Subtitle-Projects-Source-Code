@@ -42,3 +42,20 @@ function AutoTags_reverse_engineering(diff_dur,value1,value2)
 	end
 	return output
 end
+
+function minimax_approx(segments)
+	--[[Hàm xấp xỉ minimax (sử dụng Chebyshev nodes)]]
+	--[[Đầu vào: số đoạn. Tương đương với segments+1 điểm xấp xỉ (0..1), segments-1 điểm tính toán]]
+	--[[Đầu ra: bảng các giá trị t_i trong 0..1]]
+	--[[Thuật toán: sử dụng Chebyshev nodes loại II: t_i=0.5+0.5*cos( pi*i/n )]]
+	local output = {}
+	local cal = function(i) return 
+		0.5*(1+math.cos(math.pi*i/segments)) 
+	end
+	for i=1,segments-1 do
+		output[i]=cal(i)
+		--[[output[i] ở đây là t_i.]]
+	end
+	return output 
+end
+--[[Hàm cũ, không sử dụng nữa]]

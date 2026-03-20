@@ -45,3 +45,12 @@ function pointOnCBezier(cp0,cp1,cp2,cp3,value)
 	end
 	return pos
 end
+
+
+
+function bezier
+
+function moves3(settings,x1,y1,x2,y2,x3,y3,t0,t1)
+	--[[Hàm xấp xỉ tag \moves3 (di chuyển theo đường cong Bezier bậc 2, tuyến tính thời gian)]]
+	--[[Đầu vào: settings {precision,segments}]]
+	--[[precision: thiết đặt mềm: đảm bảo sai số quỹ đạo không vượt quá ]]
