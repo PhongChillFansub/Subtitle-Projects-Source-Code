@@ -2,7 +2,7 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo cong bezier (\\moves) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 1.04, 20/3/2026]]
+--[[beta 1.05, 20/3/2026]]
 
 function q2cBezier(qp0,qp1,qp2)
 	--[[Hàm biến đổi tọa độ (2d) đường cong Bezier cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
@@ -103,12 +103,15 @@ function moves3(segments,x1,y1,x2,y2,x3,y3,t0,t1)
 	local itpl = function(x)
 		return _G.interpolate(x,t0,t1)
 	end
+	local cnf0 = function(x)
+		return _G.tonumber(_G.string.format('%.0f',x))
+	end
 	moves3_data = {xi={},yi={},ti={},i=bezier_approx(cp0,cp1,cp2,cp3,segments)}
 	--[[moves3_data: xi, yi, ti, i: tọa độ x,y, thời gian tại điểm i (0..1)]]
 	for i=0,segments do
 		local pos = pointOnCBezier(cp0,cp1,cp2,cp3,moves3_data.i[i])
 		moves3_data.xi[i],moves3_data.yi[i] = pos[1],pos[2]
-		moves3_data.ti[i]=_G.string.format('%.0f',itpl(i/segments))
+		moves3_data.ti[i]=cnf0(i/segments)
 	end
 	return ''
 end
