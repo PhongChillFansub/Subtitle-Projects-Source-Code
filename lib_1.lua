@@ -2,8 +2,7 @@ script_name = "[Level 1] Lib"
 script_description = "[Phòng Chill Fansub] Thư viện hàm áp dụng cho hiệu ứng Aegisub."
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 14.07 20/3/2026]]
---[[thêm t4re() và sửa unlerp2d()]]
+--[[beta 14.08 20/3/2026]]
 
 function cmt()
   return ''
