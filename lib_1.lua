@@ -2,7 +2,8 @@ script_name = "[Level 1] Lib"
 script_description = "[Phòng Chill Fansub] Thư viện hàm áp dụng cho hiệu ứng Aegisub."
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 14.05 20/3/2026]]
+--[[beta 14.06 20/3/2026]]
+--[[thêm t4re() và sửa unlerp2d()]]
 
 function cmt()
   return ''
@@ -66,7 +67,7 @@ function unlerp2d(x,y,oldrange)
   --[[Hàm biến đổi tọa độ tuyến tính (linear interpolate) từ trong vùng cũ (2 chiều) thành 0..1 (2 chiều)]]
   --[[Đầu vào: tọa độ x, y cũ, {x1,y1,x2,y2} cũ (từ điểm A(x1,y1) đến B(x2,y2) hoặc trong hcn cạnh // trục tọa độ, có đường chéo AB)]]
   --[[Đầu ra: x,y mới (0..1)]]
-  local invp = function(v,v0,v1) return (v1==v0 and 0 or (v-v0)/(v1-v0)) end
+  local invp = function(v,v0,v1) return (v1==v0 and (v<v0 and 0 or 1) or (v-v0)/(v1-v0)) end
   return invp(x,newrange[1],newrange[3]),invp(y,newrange[2],newrange[4])
 end
 
@@ -203,16 +204,25 @@ function multiloop(limit_table)
 end
 --[[multiloop(): hàm lặp lại maxloop() theo nhiều chiều, không sử dụng decode().]]
 
-function time4loop(offset_start,offset_end,base_start,base_end)
+function t4re(offset_start,offset_end,base_start,base_end)
   --[[Hàm xử lí thời gian của tag \\t trong các entity do maxloop() và multiloop()]]
-  --[[Đầu vào: offset_start-end do loop()]]
-  --[[Đầu vào: base_start-end không phụ thuộc loop()]]
+  --[[Đầu vào: offset_start-end của loop()]]
+  --[[Đầu vào: base_start-end là thời gian gốc, không phụ thuộc loop()]]
   --[[Bài toán: do base_start-end nằm ngoài vùng của offset_start-end]]
-  --[[Đầu ra: start, end đã xử lí, interpolated_start-end]]
-  if 
-  --[[TH1. chỉ offset_start nằm ngoài base_time]]
-
-
+  --[[Đầu ra: output_start-end (đã xử lí), interpolated_start-end]]
+  --[[Thiết kế đầu ra: \t(<output>,\<tag>)]]
+  --[[output_time không nằm ngoài offset_time, =0 tính từ offset_start.]]
+  --[[interpolated_time là tỉ lệ của offset so với base]]
+  local clamp, itpl, concat = _G.clamp, _G.interpolate, _G.table.concat
+  --[[chú ý: interpolate đã có sẵn clamp]]
+  t4ro={
+    s=clamp(base_start-offset_start,0,offset_end-offset_start),
+    e=clamp(base_end-offset_start,0,offset_end-offset_start),
+    si=itpl(offset_start,base_start,base_end),
+    ei=itpl(offset_end,base_start,base_end)
+  }
+  --[[o: output. s: start, e: end, si: itpl_s, ei: itpl_e]]
+  return concat({t4ro.s,t4ro.e},',') end
 
 function jf(index,plane) 
   return jm[index][plane] 
