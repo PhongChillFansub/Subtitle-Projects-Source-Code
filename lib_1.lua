@@ -2,7 +2,7 @@ script_name = "[Level 1] Lib"
 script_description = "[Phòng Chill Fansub] Thư viện hàm áp dụng cho hiệu ứng Aegisub."
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 14.06 20/3/2026]]
+--[[beta 14.07 20/3/2026]]
 --[[thêm t4re() và sửa unlerp2d()]]
 
 function cmt()
@@ -213,13 +213,16 @@ function t4re(offset_start,offset_end,base_start,base_end)
   --[[Thiết kế đầu ra: \t(<output>,\<tag>)]]
   --[[output_time không nằm ngoài offset_time, =0 tính từ offset_start.]]
   --[[interpolated_time là tỉ lệ của offset so với base]]
-  local clamp, itpl, concat = _G.clamp, _G.interpolate, _G.table.concat
-  --[[chú ý: interpolate đã có sẵn clamp]]
+  local clamp, concat = _G.clamp, _G.table.concat
+  local invp = function(v,v0,v1)
+    return v1-v0==0 and (v<v0 and 0 or 1) or clamp((v-v0)/(v1-v0),0,1)
+  end 
+  --[[interpolate nghịch đảo, có clamp]]
   t4ro={
     s=clamp(base_start-offset_start,0,offset_end-offset_start),
     e=clamp(base_end-offset_start,0,offset_end-offset_start),
-    si=itpl(offset_start,base_start,base_end),
-    ei=itpl(offset_end,base_start,base_end)
+    si=invp(offset_start,base_start,base_end),
+    ei=invp(offset_end,base_start,base_end)
   }
   --[[o: output. s: start, e: end, si: itpl_s, ei: itpl_e]]
   return concat({t4ro.s,t4ro.e},',') end
