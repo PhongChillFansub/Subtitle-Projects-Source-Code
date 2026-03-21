@@ -74,3 +74,33 @@ function OscillateTag(overall_dur,move_dur,movement1,movement2)
 	end
 	return _G.table.concat(output)
 end
+
+function simpleCharFadFx(speed,faddur,text)
+	--[[Hàm tạo đầu ra fx hiện dần từng chữ]]
+	local twidth = function(input_text_stripped)
+		ex1 = _G.aegisub.text_extents(line.styleref,input_text_stripped)
+		return ex1
+	end
+	local char_fxformat = '{\\1a&HFF&\\3a&HFF&\\t(%.0f,%.0f,\\1a&H00&\\3a&H00&)\\t(%.0f,%.0f,\\1a&HFF&\\3a&HFF&)}%s'
+	local char_fx = function(t1,t2,t3,t4,offset,char)
+		return string.format(char_fxformat,t1+offset,t2+offset,t3+offset,t4+offset,char)
+	end
+	local concat, output, lwidth, text_findwidth, fadstart_time = _G.table.concat, {}, twidth(text), {}, 0
+	for char,index in _G.unicode.chars(text) do
+    	text_findwidth[#text_findwidth+1]=char
+		local sright=twidth(concat(text_findwidth))
+		if char~=' ' and char~='\\' and (last_char or '')~='\\' then 
+			--[[Bỏ qua dấu cách và dấu xuống dòng]]
+			--[[Các chữ chỉ hiện trong $ldur, cố định \fad(faddur,faddur)]]
+			--[[Tuy nhiên, thời gian bắt đầu thay đổi: fadstart_time=($scenter-$lleft)/speed]]
+			--[[Tức là ($sright-$lleft-$swidth/2)/speed]]
+			local swidth=twidth(char)
+			fadstart_time=cnfv4((sright-swidth/2)/speed,0)
+			local char_output = char_fx(0,faddur,orgline.duration-faddur,orgline.duration,fadstart_time,char)
+			output[#output+1] = char_output
+		else
+			output[#output+1] = char
+		end
+  	end
+	return concat(output)
+end
