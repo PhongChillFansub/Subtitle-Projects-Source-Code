@@ -60,7 +60,7 @@ function minimax_approx(segments)
 end
 --[[Hàm cũ, không sử dụng nữa]]
 
-function WingMovement(overall_dur,move_dur,movement1,movement2)
+function OscillateTag(overall_dur,move_dur,movement1,movement2)
 	--[[Bản chất: hàm chia nhỏ overall_dur thành các đoạn dài move_dur,...]]
 	--[[và mỗi move_dur xen kẽ 1 trong 2 lệnh movement1 hoặc movement2]]
 	--[[Tương tự AutoTags(), nhưng có thêm overall_dur]]
