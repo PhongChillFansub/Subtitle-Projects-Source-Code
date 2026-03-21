@@ -1,10 +1,14 @@
 script_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
-script_version = "1.0"
+script_version = "2.0"
+--[[v2.0 alpha 0.1 21/3/2026]]
+
+
+
+--[[Phần v1 part 3]]
 --[[1.0 part 3. Chuyển đổi line {\k1}<kanji> thành {\k<rom_time>}<kanji>]]
 --[[Tuy nhiên, hiệu suất phụ thuộc vào độ chính xác của part 1 và 2 (gemini)]]
-
 LR2TLv3data = {} 
 function LR2TLv3(ctrlSignal) 
     --[[Hàm copy dữ liệu từ LR sang TL (fx giải thích nghĩa) hoặc JP (auto Kanji Timer).]]
@@ -85,3 +89,30 @@ function autoKanjiTimerV1()
     end 
     return output 
 end
+
+--[[Phần viết mới, gộp part 1 và 2]]
+function get_char_type(char)
+    --[[vibe coding (gemini)]]
+    --[[Lấy mã Unicode (decimal) của ký tự]] 
+    local cp = _G.unicode.codepoint(char)
+    if cp >= 0x4E00 and cp <= 0x9FAF then
+        return "kanji"
+    elseif cp >= 0x3040 and cp <= 0x309F then
+        return "hiragana"
+    elseif cp >= 0x30A0 and cp <= 0x30FF then
+        return "katakana"
+    elseif cp >= 0x0020 and cp <= 0x007E then
+        return "romaji_basic" 
+        --[[Bao gồm chữ cái Latin, số và ký hiệu cơ bản]]
+    else
+        return "other"
+    end
+end
+
+
+function kanjiPreparation(input_line)
+    --[[Hàm chuẩn bị đầu vào cho Kanji Timer]]
+    --[[Đầu vào input_line (câu Kanji (có sẵn Hiragana), stripped)]]
+    --[[Cấu trúc đơn vị đầu vào: <1 chữ kanji>(<các chữ furigana của nó>). vd: '君(きみ)']]
+    --[[Hoặc 1 chữ katakana/hiragana. vd: 優(やさ)しい gồm 3 đơn vị 優(やさ), し, い]]
+    --[[Đầu ra: vd: {\k1}優|や{\k1}#|さ{\k1}し{\k1}い]]
