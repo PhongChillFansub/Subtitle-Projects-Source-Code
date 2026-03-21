@@ -2,7 +2,7 @@ script_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
---[[v2.0 alpha 0.1 21/3/2026]]
+--[[v2.0 alpha 0.2 21/3/2026]]
 
 
 
@@ -90,29 +90,89 @@ function autoKanjiTimerV1()
     return output 
 end
 
---[[Phần viết mới, gộp part 1 và 2]]
+--[[Phần viết mới]]
 function get_char_type(char)
-    --[[vibe coding (gemini)]]
+    --[[vibe coding (chatgpt, gemini), đã sửa]]
     --[[Lấy mã Unicode (decimal) của ký tự]] 
     local cp = _G.unicode.codepoint(char)
-    if cp >= 0x4E00 and cp <= 0x9FAF then
+    if (cp >= 0x4E00 and cp <= 0x9FAF) or cp == 0x3005 then
         return "kanji"
+    elseif (cp == 0x3083 or cp == 0x3085 or cp == 0x3087) then
+        --[[youon hiragana (ゃ ゅ ょ), các kí tự gộp với chữ trước tạo thành âm.]] 
+        return "hiragana_youon"
+    elseif cp >= 0x30E3 and cp <= 0x30E7 and (cp % 2 == 1) then
+        return "katakana_youon"
     elseif cp >= 0x3040 and cp <= 0x309F then
         return "hiragana"
     elseif cp >= 0x30A0 and cp <= 0x30FF then
         return "katakana"
     elseif cp >= 0x0020 and cp <= 0x007E then
-        return "romaji_basic" 
+        return "romaji_basic"
         --[[Bao gồm chữ cái Latin, số và ký hiệu cơ bản]]
     else
         return "other"
     end
 end
 
-
-function kanjiPreparation(input_line)
+function kanji_prepare_v2p2(input_line)
     --[[Hàm chuẩn bị đầu vào cho Kanji Timer]]
-    --[[Đầu vào input_line (câu Kanji (có sẵn Hiragana), stripped)]]
+    --[[Đầu vào input_line (câu Kanji (có sẵn hiragana), stripped)]]
     --[[Cấu trúc đơn vị đầu vào: <1 chữ kanji>(<các chữ furigana của nó>). vd: '君(きみ)']]
+    --[[Do yêu cầu đầu vào kanji có furigana, nên phải phụ thuộc part 1 lấy furigana (dùng AI)]]
     --[[Hoặc 1 chữ katakana/hiragana. vd: 優(やさ)しい gồm 3 đơn vị 優(やさ), し, い]]
-    --[[Đầu ra: vd: {\k1}優|や{\k1}#|さ{\k1}し{\k1}い]]
+    --[[Đầu ra: vd: 優(やさ)しい -> {\k1}優|や{\k1}#|さ{\k1}し{\k1}い]]
+    local output, new_line, concat = {}, string.char(10), _G.table.concat
+    local using_kanji, last_char, furigana_mode = '','', false
+    for char,index in _G.unicode.chars(input_line) do
+        local ctype = get_char_type(char)
+        if ctype=='kanji' then
+            --[[char là kanji]]
+            if using_kanji ~= '' then
+                if using_kanji==last_char then
+                    --[[Nhiều kanji liên tiếp]]
+                    using_kanji=concat({using_kanji,char})
+                else
+                    --[[chuyển sang kan mới khi đang dùng kan cũ?]]
+                    local msg = '[KanPrep2] L:%d, chuyển sang kan mới %s (i:%d) khi còn kan cũ %s?%s'
+                    _G.aegisub.log(3,msg, line.i,char,index,using_kanji,new_line)
+                end
+            end
+            using_kanji=char
+        elseif char=='(' then
+            --[[char là char mở khối furigana]]
+            furigana_mode = true
+            if index==1 or last_char ~= using_kanji then
+                --[[trước dấu '(' không có chữ nào, hoặc chữ khác với using_kanji?]]
+                local msg = '[KanPrep2] L:%d, đặt dấu \'%s\' (i:%d) bất thường (đầu câu, hoặc không liền sau kanji)?%sCâu: %s%sVị trí: sau %s%s'
+                _G.aegisub.log(3,msg, line.i,char,index,new_line,input_line,new_line,last_char,new_line)
+            end
+        elseif char==')' then
+            --[[char là char đóng khối furigana]]
+            furigana_mode = false
+            using_kanji = ''
+        elseif ctype=='hiragana' or ctype=='katakana' then
+            --[[char là kana]]
+            if furigana_mode then
+                --[[Chữ nằm trong 1 khối furigana của using_kanji]]
+                --[[Thêm đơn vị đầu ra mới: <using_kanji>|<char> hoặc #|<char> nếu ko phải char đầu của khối (liền sau dấu '(')]]
+                output[#output+1]= concat({last_char=='(' and using_kanji or '#','|',char})
+            else
+                --[[Chữ nằm riêng lẻ, không trong khối furigana]]
+                output[#output+1]= char
+            end
+        elseif ctype=='katakana_youon' or 'hiragana_youon' then
+            --[[char là youon, gộp với char trước để tạo thành âm]]
+            output[#output] = concat({output[#output],char})
+        elseif ctype=='romaji_basic' then
+            if get_char_type(last_char)~='romaji_basic' then
+                output[#output+1]=char
+            else
+                output[#output]=concat({output[#output],char})
+            end
+        elseif ctype=='other' then
+            _G.aegisub.log(3,'[KanPrep2] L:%d, kí tự i:%d là gì?%s',line.i,index,new_line)
+        end
+        last_char=char
+    end
+    return concat(output)
+end
