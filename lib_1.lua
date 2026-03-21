@@ -2,7 +2,7 @@ script_name = "[Level 1] Lib"
 script_description = "[Phòng Chill Fansub] Thư viện hàm áp dụng cho hiệu ứng Aegisub."
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 14.08 20/3/2026]]
+--[[beta 14.09 20/3/2026]]
 
 function cmt()
   return ''
@@ -224,7 +224,7 @@ function t4re(offset_start,offset_end,base_start,base_end)
     ei=invp(offset_end,base_start,base_end)
   }
   --[[o: output. s: start, e: end, si: itpl_s, ei: itpl_e]]
-  return concat({t4ro.s,t4ro.e},',') end
+  return concat({t4ro.s,t4ro.e,''},',') end
 
 function jf(index,plane) 
   return jm[index][plane] 
