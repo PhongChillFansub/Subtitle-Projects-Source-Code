@@ -104,3 +104,61 @@ function simpleCharFadFx(speed,faddur,text)
   	end
 	return concat(output)
 end
+
+Comment: 0,0:00:00.00,0:00:00.00,30M3_LR,fallingCB_M,0,0,0,template syl noblank notext fxgroup syl1,
+!maxloop(   
+	remember(
+		'eplw',
+		1+math.ceil( ($lwidth-remember('fxedist',100))/recall.fxedist )
+	) *remember(
+		'epdt',
+		math.ceil( ($ldur-remember(
+			'nsptimeLR',
+			recall.sptimeLR ~= nil and _G.clamp(recall.sptimeLR-$lstart,-99999,0) or 0
+		)-remember(
+			'fxedur',
+			1500
+		))/recall.fxedur )
+	)   
+) !
+!retime(
+	'postline', 
+	remember(  
+		'nstart', 
+		0+audioOffset[audioMode]-recall.epdt*recall.fxedur+math.random(0,recall.fxedur)+recall.fxedur*(decode1(j,recall.eplw,2)-1)  
+	),
+	recall.nstart+recall.fxedur 
+)!
+{
+	\an5
+	\move(
+		!remember(  
+			'nposX', 
+				LRpos[1]
+				+$lwidth/2
+				+(-1*windV2+0.5)*recall.fxedist
+				-recall.eplw*recall.fxedist/2
+				+recall.fxedist*(decode1(j,recall.eplw,1)-1)
+				+math.random(-recall.fxedist/2,recall.fxedist/2)  
+			)!,
+		!LRpos[2]!,
+		!recall.nposX+windV2*$lheight!,
+		!LRpos[2]+$lheight!
+	)
+	\fad(200,200)
+	\frx!remember('rrX',math.random(0,180))!
+	\fry!remember('rrY',math.random(0,360))!
+	\frz!remember('rrZ',math.random(0,360))!
+	\t(
+		\frx!math.random(0,180)!
+		\fry!recall.rrY+math.random(60,300)!
+		\frz!recall.rrZ+math.random(45,315)!
+	)
+	\fscx!remember('nfsc',math.random(70,100))!
+	\fscy!recall.nfsc!
+	\1c&HE2D6F3&
+	\3c&HE2D6F3&
+	\bord2
+	\shad0
+	\p1
+}m 5 2 l 7 0 b 9 1 10 4 10 6 l 5 15 l 0 6 b 0 4 1 1 3 0 l 5 2
