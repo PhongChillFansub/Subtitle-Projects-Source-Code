@@ -2,7 +2,7 @@ script_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
---[[v2.0 alpha 0.4 22/3/2026]]
+--[[v2.0 beta 1 22/3/2026]]
 
 function get_char_type(char)
     --[[vibe coding (chatgpt, gemini), đã sửa]]
@@ -118,10 +118,10 @@ function auto_kanji_timer_v2(force_merge)
         last_char=char
     end
     for i=1,#output do
-        output[i] = string.format('{\\k%d}%s',get_char_type(UTFv2(output[i],-1))~='other' and 1 or 0,output[i])
+        local mainsyl = (get_char_type(UTFv2(output[i],1))~='other' or get_char_type(UTFv2(output[i],-1))~='other')
+        output[i] = string.format('{\\k%d}%s',mainsyl and 1 or 0,output[i])
         _G.aegisub.log(notif_syl,'[autoKanjiTimer_v2] L:%d, syl \'%s\' (i=%d, %s).%s',orgline.i,output[i],i,get_char_type(UTFv2(output[i],-1)),new_line)
     end
-
     --[[]]
     --[[Phần 2: {\k1}->{\k<t>}]]
     --[[ (Xử lí khớp timing với LR (từ LRdata(), yêu cầu chạy copy_line_data() trước ở LR) ]]
@@ -153,7 +153,6 @@ function auto_kanji_timer_v2(force_merge)
             LRdata_blankoffset=LRdata_blankoffset+1
         end
     end
-
     if #output-output_blankoffset~=#LRdata[gotLRdata].kara-LRdata_blankoffset then
         --[[Nếu không trùng khớp syl]]
         local msg='[autoKanjiTimer_v2] L:%d, Câu này không khớp số syl với câu LR cùng start_time:%s'
@@ -183,7 +182,13 @@ function auto_kanji_timer_v2(force_merge)
             else
                 _G.aegisub.log(3,'[autoKanjiTimer_v2] L:%d, còn trường hợp nào khác à? (%d/%d,%d/%d)%s',orgline.i, iJP, #output, iLR,#LRdata[gotLRdata].kara,new_line)
             end
-            if iJP>#output or iLR>#LRdata[gotLRdata].kara then
+            if (iJP>#output) or iLR>#LRdata[gotLRdata].kara then
+                if output[iJP] and output[iJP]:find('{\\k0}') then
+                    iJP=iJP+1
+                end
+                if LRdata[gotLRdata].kara[iLR] and LRdata[gotLRdata].kara[iLR].duration==0 then
+                    iLR=iLR+1
+                end
                 if not(iJP>#output and iLR>#LRdata[gotLRdata].kara) then
                     _G.aegisub.log(3,'[autoKanjiTimer_v2] L:%d, Sau offset bằng nhau mà lại không đồng bộ? Đang bỏ dở.%s',orgline.i,new_line)
                 end
