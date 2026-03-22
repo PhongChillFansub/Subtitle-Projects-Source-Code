@@ -2,7 +2,7 @@ script_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
---[[v2.0 alpha 0.3 21/3/2026]]
+--[[v2.0 alpha 0.4 22/3/2026]]
 
 function get_char_type(char)
     --[[vibe coding (chatgpt, gemini), đã sửa]]
@@ -27,70 +27,6 @@ function get_char_type(char)
     end
 end
 
-function kanji_prepare_v2p2(input_line)
-    --[[Hàm chuẩn bị đầu vào cho Kanji Timer]]
-    --[[Đầu vào input_line (câu Kanji (có sẵn hiragana), stripped)]]
-    --[[Cấu trúc đơn vị đầu vào: <1 chữ kanji>(<các chữ furigana của nó>). vd: '君(きみ)']]
-    --[[Do yêu cầu đầu vào kanji có furigana, nên phải phụ thuộc part 1 lấy furigana (dùng AI)]]
-    --[[Hoặc 1 chữ katakana/hiragana. vd: 優(やさ)しい gồm 3 đơn vị 優(やさ), し, い]]
-    --[[Đầu ra: vd: 優(やさ)しい -> {\k1}優|や{\k1}#|さ{\k1}し{\k1}い]]
-    local output, new_line, concat = {}, string.char(10), _G.table.concat
-    local using_kanji, last_char, furigana_mode = '','', false
-    for char,index in _G.unicode.chars(input_line) do
-        local ctype = get_char_type(char)
-        if ctype=='kanji' then
-            --[[char là kanji]]
-            if using_kanji ~= '' then
-                if using_kanji==last_char then
-                    --[[Nhiều kanji liên tiếp]]
-                    using_kanji=concat({using_kanji,char})
-                else
-                    --[[chuyển sang kan mới khi đang dùng kan cũ?]]
-                    local msg = '[KanPrep2] L:%d, chuyển sang kan mới %s (i:%d) khi còn kan cũ %s?%s'
-                    _G.aegisub.log(3,msg, line.i,char,index,using_kanji,new_line)
-                end
-            end
-            using_kanji=char
-        elseif char=='(' then
-            --[[char là char mở khối furigana]]
-            furigana_mode = true
-            if index==1 or last_char ~= using_kanji then
-                --[[trước dấu '(' không có chữ nào, hoặc chữ khác với using_kanji?]]
-                local msg = '[KanPrep2] L:%d, đặt dấu \'%s\' (i:%d) bất thường (đầu câu, hoặc không liền sau kanji)?%sCâu: %s%sVị trí: sau %s%s'
-                _G.aegisub.log(3,msg, line.i,char,index,new_line,input_line,new_line,last_char,new_line)
-            end
-        elseif char==')' then
-            --[[char là char đóng khối furigana]]
-            furigana_mode = false
-            using_kanji = ''
-        elseif ctype=='hiragana' or ctype=='katakana' then
-            --[[char là kana]]
-            if furigana_mode then
-                --[[Chữ nằm trong 1 khối furigana của using_kanji]]
-                --[[Thêm đơn vị đầu ra mới: <using_kanji>|<char> hoặc #|<char> nếu ko phải char đầu của khối (liền sau dấu '(')]]
-                output[#output+1]= concat({last_char=='(' and using_kanji or '#','|',char})
-            else
-                --[[Chữ nằm riêng lẻ, không trong khối furigana]]
-                output[#output+1]= char
-            end
-        elseif ctype=='katakana_youon' or 'hiragana_youon' then
-            --[[char là youon, gộp với char trước để tạo thành âm]]
-            output[#output] = concat({output[#output],char})
-        elseif ctype=='romaji' then
-            if get_char_type(last_char)~='romaji' then
-                output[#output+1]=char
-            else
-                output[#output]=concat({output[#output],char})
-            end
-        elseif ctype=='other' then
-            _G.aegisub.log(3,'[KanPrep2] L:%d, kí tự i:%d là gì?%s',line.i,index,new_line)
-        end
-        last_char=char
-        output[#output] = string.format('{\\k%d}%s',ctype~='kanji' and 1 or 0,output[#output])
-    end
-    return concat(output)
-end
-
 function copy_line_data()
     --[[Hàm copy dữ liệu kara (từ LR) để phục vụ fx khác (fx giải thích nghĩa của TL, auto Kanji Timer của JP).]]
     --[[Chú ý: chỉ chạy hàm ở code line (1 lần mỗi line)]]
@@ -103,97 +39,157 @@ function copy_line_data()
     return '' 
 end
 
-function auto_kanji_timer_v2()
-    local output, new_line = {}, string.char(10)
-    --[[Hàm auto_kanji_timer, bản chất là từ line JP dạng {\k1} thành dạng {\k<LR_kara>}]]
+function auto_kanji_timer_v2(force_merge)
+    --[[Auto Kanji Timer v2.]]
+    --[[Đầu vào lấy từ dữ liệu orgline (câu Kanji (có sẵn hiragana), stripped)]]
+    --[[Cấu trúc đơn vị đầu vào: <1 chữ kanji>(<các chữ furigana của nó>). vd: '君(きみ)']]
+    --[[Yêu cầu đầu vào kanji có furigana, có thể dùng AI để tiền xử lí.]]
+    --[[Hoặc 1 chữ katakana/hiragana. vd: 優(やさ)しい gồm 3 đơn vị 優(やさ), し, い]]
+    --[[Đầu ra: vd: 優(やさ)しい -> {\k<t1>}優|や{\k<t2>}#|さ{\k<t3>}し{\k<t4>}い]]
+    --[[Phần 1: 優(やさ)しい -> {\k1}優|や{\k1}#|さ{\k1}し{\k1}い]]
+    --[[ (Tạo syl cho line) ]]
+    local notif_char, notif_sylcreate, notif_syl = 5,5,5
+    local output, new_line, concat = {}, string.char(10), _G.table.concat
+    local using_kanji, last_char, furigana_mode = '','', false
+    for char,index in _G.unicode.chars(orgline.text_stripped) do
+        local ctype = get_char_type(char)
+        _G.aegisub.log(notif_char,'[autoKanjiTimer_v2] L:%d, char \'%s\' (i=%d). %s',orgline.i,char,index,new_line)
+        if ctype=='kanji' then
+            --[[char là kanji]]
+            if using_kanji ~= '' then
+                if using_kanji==last_char then
+                    --[[Nhiều kanji liên tiếp]]
+                    using_kanji=concat({using_kanji,char})
+                else
+                    --[[chuyển sang kan mới khi đang dùng kan cũ?]]
+                    local msg = '[autoKanjiTimer_v2] L:%d, chuyển sang kan mới %s (i:%d) khi còn kan cũ %s?%s'
+                    _G.aegisub.log(3,msg, orgline.i,char,index,using_kanji,new_line)
+                end
+            end
+            using_kanji=char
+        elseif char=='(' then
+            --[[char là char mở khối furigana]]
+            furigana_mode = true
+            if index==1 or last_char ~= using_kanji then
+                --[[trước dấu '(' không có chữ nào, hoặc chữ khác với using_kanji?]]
+                local msg = '[autoKanjiTimer_v2] L:%d, đặt dấu \'%s\' (i:%d) bất thường (đầu câu, hoặc không liền sau kanji)?%sCâu: %s%sVị trí: sau %s%s'
+                _G.aegisub.log(3,msg, orgline.i,char,index,new_line,orgline.text_stripped,new_line,last_char,new_line)
+            end
+        elseif char==')' then
+            --[[char là char đóng khối furigana]]
+            furigana_mode = false
+            using_kanji = ''
+        elseif char==force_merge then
+            --[[liên kết char phía sau với âm trước (can thiệp từ người dùng)]]
+            --[[ko làm gì cả]]
+        elseif last_char==force_merge or ctype=='katakana_youon' or ctype=='hiragana_youon' then
+            --[[char là youon, gộp với char trước để tạo thành âm]]
+            --[[hoặc là liên kết char phía sau với âm trước (can thiệp từ người dùng)]]
+            output[#output] = concat({output[#output],char})
+        elseif ctype=='hiragana' or ctype=='katakana' then
+            --[[char là kana]]
+            if furigana_mode then
+                --[[Chữ nằm trong 1 khối furigana của using_kanji]]
+                --[[Thêm đơn vị đầu ra mới: <using_kanji>|<char> hoặc #|<char> nếu ko phải char đầu của khối (liền sau dấu '(')]]
+                output[#output+1]= concat({last_char=='(' and using_kanji or '#','|',char})
+                _G.aegisub.log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, tạo syl mới i=%d, \'%s\'%s',orgline.i,#output,output[#output],new_line)
+            else
+                --[[Chữ nằm riêng lẻ, không trong khối furigana]]
+                output[#output+1]=char
+                _G.aegisub.log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, tạo syl mới i=%d, \'%s\'%s',orgline.i,#output,output[#output],new_line)
+            end
+        elseif ctype=='romaji' then
+            if index==1 or get_char_type(last_char)~='romaji' then
+                output[#output+1]=char
+                _G.aegisub.log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, tạo syl mới i=%d, \'%s\'%s',orgline.i,#output,output[#output],new_line)
+            else
+                output[#output]=concat({output[#output],char})
+            end
+        elseif ctype=='other' then
+            _G.aegisub.log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, kí tự \'%s\' (i:%d) là \'other\'?%s',orgline.i,char,index,new_line)
+            _G.aegisub.log(notif_sylcreate,'%s%s',get_char_type(last_char),new_line)
+            if index==1 or last_char==')' or get_char_type(last_char)~='other' then
+                output[#output+1]=char
+                _G.aegisub.log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, tạo syl mới i=%d, \'%s\'%s',orgline.i,#output,output[#output],new_line)
+            else
+                output[#output]=concat({output[#output],char})
+            end
+        end
+        last_char=char
+    end
+    for i=1,#output do
+        output[i] = string.format('{\\k%d}%s',get_char_type(UTFv2(output[i],-1))~='other' and 1 or 0,output[i])
+        _G.aegisub.log(notif_syl,'[autoKanjiTimer_v2] L:%d, syl \'%s\' (i=%d, %s).%s',orgline.i,output[i],i,get_char_type(UTFv2(output[i],-1)),new_line)
+    end
+
+    --[[]]
+    --[[Phần 2: {\k1}->{\k<t>}]]
+    --[[ (Xử lí khớp timing với LR (từ LRdata(), yêu cầu chạy copy_line_data() trước ở LR) ]]
     --[[Cơ chế: dựa trên khớp số lượng syl, khớp timing câu]]
-    --[[Yêu cầu chạy hàm copy_line_data() trước trên LR.]]
-    gotLRIndex = 0
-    for i=1,#LRdata,1 do
-        if line.start_time-LRdata[i].start_time==0 then
-            gotLRIndex=i
+    local gotLRdata = -1
+    for i=1,#LRdata do
+        if orgline.start_time-LRdata[i].start_time==0 then
+            gotLRdata=i
             break
         end
     end
-    if gotLRIndex ==0 then
-        _G.aegisub.log(3,'[autoKanjiTimer_v2] Câu này không tìm được câu romaji tương ứng:%s\'%s\'%sĐã tự động bỏ trống để tránh gián đoạn.%s',new_line,line.text_stripped,new_line) 
-        return ''
+    if gotLRdata == -1 then
+        local msg='[autoKanjiTimer_v2] L:%d, Câu này không có câu LR tương ứng:%s\'%s\'%sĐã giữ nguyên câu để tránh gián đoạn.%s'
+        _G.aegisub.log(3,msg,orgline.i,new_line,orgline.text_stripped,new_line,new_line) 
+        local output_fail={'{line_notmatch}',orgline.text_stripped}
+        return concat(output_fail)
+    end
+    --[[Kiểm tra khớp số lượng syl]]
+    --[[LRdata[i] ở đây là orgline của LR]]
+    --[[Kiểm tra trước các syl trống ($sdur=0)]]
+    local output_blankoffset, LRdata_blankoffset = 0, 0
+    for i=1,math.max(#output,#LRdata[gotLRdata].kara) do
+        if output[i] and output[i]:find('{\\k0}') then
+            --[[syl i là syl trống.]]
+            output_blankoffset=output_blankoffset+1
+        end
+        if LRdata[gotLRdata].kara[i] and LRdata[gotLRdata].kara[i].duration==0 then
+            --[[syl i là syl trống.]]
+            LRdata_blankoffset=LRdata_blankoffset+1
+        end
     end
 
-
-function autoKanjiTimerV1() 
-    local output = '' 
-    --[[Hàm chạy tại phần template syl notext fxgroup(syl.i==0) của style JP--]] 
-    --[[Mục đích: tạo ra dòng có text của kanji/furigana, kara của romaji--]] 
-    --[[Cơ chế: dựa trên khớp số lượng syl--]] 
-    --[[--]] 
-    --[[Kiểm tra câu LR tương ứng của JP--]] 
-    gotLRIndex = 0 
-    for i0 = 1,#LR2TLv3data, 1 do 
-        --[[Kiểm tra trong các câu--]] 
-        if line.start_time*1 == LR2TLv3data[i0].start_time*1 then 
-            --[[Lấy thời điểm khởi đầu làm chuẩn để so sánh--]] 
-            gotLRIndex = i0 
-            break 
-            --[[Đặt gotLRIndex là thứ tự câu romaji tương ứng--]] 
-        end 
-    end 
-    if gotLRIndex == 0 then 
-        --[[Nếu không tìm được câu tương ứng--]] 
-        _G.aegisub.log(3,'[autoKanjiTimer_v1] Câu này không tìm được câu romaji tương ứng:\n%d\nĐã tự động bỏ trống để tránh gián đoạn.\n',line.start_time) 
-        return '' 
-    end 
-    --[[Thiết lập dữ liệu]]
-    --[[to-do: sử dụng orgline của JP, vì nó vẫn giữ định dạng {\k1}<kanji>|<furigana>]]
-
-    JPdata = {text={},i={}} 
-    --[[Bảng lưu dữ liệu: text: ND kanji-furigana, i: dữ liệu timing--]]
-
-
-    nextdata = {} 
-    local offsetJPdata = 0 
-    for i0 = 1,#line.kara,1 do 
-        --[[Xét JP--]] 
-        for i1 = 1,_G.math.max(#line.kara[i0].furi,1) do 
-            --[[Xét các furi trong syl (nếu ko có furi thì xét 1 lần)--]] 
-            checkIndex = #JPdata[1]+1-offsetJPdata 
-            if checkIndex <= #LR2TLv3data[gotLRIndex].kara then 
-                checkData = LR2TLv3data[gotLRIndex].kara[checkIndex] 
-                if #line.kara[i0].furi == 0 then 
-                    nextdata = {line.kara[i0].text_stripped,checkData.duration/10} 
-                    --[[syl kanji ko có furigana--]]
-                else 
-                    nextdata = {(i1>1 and '#' or line.kara[i0].text_stripped)..'|'..(i1>1 and '' or '<')..line.kara[i0].furi[i1].text_stripped,checkData.duration/10} 
-                    --[[syl kanji có furigana--]] 
-                end 
-                if (checkData.text_stripped == '') then 
-                    --[[Nếu syl LR tương ứng là syl trống, thì thêm syl trống đó vào trước khi thêm nextdata--]] 
-                    JPdata[2][#JPdata[1]+1] = checkData.duration/10 
-                    JPdata[1][#JPdata[1]+1] = ''
-                end 
-            end 
-            JPdata[2][#JPdata[1]+1]= nextdata[2] 
-            JPdata[1][#JPdata[1]+1]= nextdata[1] 
-        end 
-        if line.kara[i0].duration == 0 then 
-            offsetJPdata = (offsetJPdata or 0)+1 
-            JPdata[2][#JPdata[2]] = 0 
-        end 
-        --[[Nếu gặp syl JP trống thì offsetJPdata+1 và sửa timing lại theo timing JP (về 0ms)--]] 
-    end 
-    --[[Kiểm tra khớp số lượng syl giữa JP và LR--]] 
-    if #JPdata[1]-offsetJPdata ~= #LR2TLv3data[gotLRIndex].kara then 
-        --[[Khi #JPdata[1]=syl JP+JP trống+LR trống, offsetJP=JP trống, không khớp với #LRdata.kara: syl LR + LR trống, thì tức là không khớp--]]
-        --[[đầu ra báo không trùng khớp--]] 
-        return 'không trùng khớp, JP: '..#JPdata[1]..' '..offsetJPdata..' '..'LR: '..#LR2TLv3data[gotLRIndex].kara 
-    end 
-    --[[--]] 
-    --[[Nếu khớp số lượng syl--]] 
-    --[[2. Tiến hành hợp nhất dữ liệu--]] 
-    --[[2a. Lập mẫu cơ sở, sử dụng string.format()--]] 
-    sylUnit = '{\\k%d}%s' 
-    for i0= 1,#JPdata[1],1 do 
-        output = output..string.format(sylUnit,JPdata[2][i0],JPdata[1][i0]) 
-    end 
-    return output 
+    if #output-output_blankoffset~=#LRdata[gotLRdata].kara-LRdata_blankoffset then
+        --[[Nếu không trùng khớp syl]]
+        local msg='[autoKanjiTimer_v2] L:%d, Câu này không khớp số syl với câu LR cùng start_time:%s'
+        _G.aegisub.log(3,msg,orgline.i,new_line)
+        msg='- orgJP: \'%s\'%s'
+        _G.aegisub.log(3,msg,orgline.text_stripped,new_line)
+        msg='- JP(%d-%d): \'%s\'%s'
+        _G.aegisub.log(3,msg,#output,output_blankoffset,concat(output),new_line)
+        msg='- LR(%d-%d): \'%s\'%s'
+        _G.aegisub.log(3,msg,#LRdata[gotLRdata].kara,LRdata_blankoffset,LRdata[gotLRdata].text,new_line)
+        msg='Đã giữ nguyên câu để tránh gián đoạn.%s%s'
+        _G.aegisub.log(3,msg,new_line,new_line)
+        local output_fail={'{syln_notmatch}',orgline.text_stripped}
+        return concat(output_fail)
+    else
+        --[[Trùng khớp số lượng syl]]
+        local iJP,iLR=1,1
+        for i=1,#output+#LRdata[gotLRdata].kara do
+            if output[iJP]:find('{\\k1}') and LRdata[gotLRdata].kara[iLR].duration>0 then
+                --[[cả 2 đều ko trống, tiến hành khớp]]
+                output[iJP] = output[iJP]:gsub("{\\k1}", string.format("{\\k%d}", LRdata[gotLRdata].kara[iLR].duration/10))
+                iJP,iLR=iJP+1,iLR+1
+            elseif output[iJP]:find('{\\k0}') then
+                iJP=iJP+1
+            elseif LRdata[gotLRdata].kara[iLR].duration==0 then
+                iLR=iLR+1
+            else
+                _G.aegisub.log(3,'[autoKanjiTimer_v2] L:%d, còn trường hợp nào khác à? (%d/%d,%d/%d)%s',orgline.i, iJP, #output, iLR,#LRdata[gotLRdata].kara,new_line)
+            end
+            if iJP>#output or iLR>#LRdata[gotLRdata].kara then
+                if not(iJP>#output and iLR>#LRdata[gotLRdata].kara) then
+                    _G.aegisub.log(3,'[autoKanjiTimer_v2] L:%d, Sau offset bằng nhau mà lại không đồng bộ? Đang bỏ dở.%s',orgline.i,new_line)
+                end
+                break
+            end
+        end
+    end
+    return concat(output)
 end
