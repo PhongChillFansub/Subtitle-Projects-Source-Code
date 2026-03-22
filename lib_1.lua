@@ -2,7 +2,7 @@ script_name = "[Level 1] Lib"
 script_description = "[Phòng Chill Fansub] Thư viện hàm áp dụng cho hiệu ứng Aegisub."
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 14.09 20/3/2026]]
+--[[beta 14.10 22/3/2026]]
 
 function cmt()
   return ''
@@ -203,7 +203,7 @@ function multiloop(limit_table)
 end
 --[[multiloop(): hàm lặp lại maxloop() theo nhiều chiều, không sử dụng decode().]]
 
-function t4re(offset_start,offset_end,base_start,base_end)
+function t4re(offset_start,offset_end,base_start,base_end,first_tag)
   --[[Hàm xử lí thời gian của tag \\t trong các entity do maxloop() và multiloop()]]
   --[[Đầu vào: offset_start-end của loop()]]
   --[[Đầu vào: base_start-end là thời gian gốc, không phụ thuộc loop()]]
@@ -224,7 +224,7 @@ function t4re(offset_start,offset_end,base_start,base_end)
     ei=invp(offset_end,base_start,base_end)
   }
   --[[o: output. s: start, e: end, si: itpl_s, ei: itpl_e]]
-  return concat({t4ro.s,t4ro.e,''},',') end
+  return concat({t4ro.s,t4ro.e,first_tag},',') end
 
 function jf(index,plane) 
   return jm[index][plane] 
