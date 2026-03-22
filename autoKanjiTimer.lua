@@ -2,7 +2,7 @@ script_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
---[[v2.0 beta 1 22/3/2026]]
+--[[v2.0 beta 1.01 22/3/2026]]
 
 function get_char_type(char)
     --[[vibe coding (chatgpt, gemini), đã sửa]]
@@ -91,7 +91,7 @@ function auto_kanji_timer_v2(force_merge)
             if furigana_mode then
                 --[[Chữ nằm trong 1 khối furigana của using_kanji]]
                 --[[Thêm đơn vị đầu ra mới: <using_kanji>|<char> hoặc #|<char> nếu ko phải char đầu của khối (liền sau dấu '(')]]
-                output[#output+1]= concat({last_char=='(' and using_kanji or '#','|',char})
+                output[#output+1]= _G.string.format(last_char=='(' and '%s|<%s' or '%s|%s',last_char=='(' and using_kanji or '',char)
                 _G.aegisub.log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, tạo syl mới i=%d, \'%s\'%s',orgline.i,#output,output[#output],new_line)
             else
                 --[[Chữ nằm riêng lẻ, không trong khối furigana]]
