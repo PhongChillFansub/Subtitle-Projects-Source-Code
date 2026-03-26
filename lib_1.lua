@@ -2,7 +2,7 @@ script_name = "[Level 1] Lib"
 script_description = "[Phòng Chill Fansub] Thư viện hàm áp dụng cho hiệu ứng Aegisub."
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 14.10 22/3/2026]]
+--[[beta 14.11 22/3/2026]]
 
 function cmt()
   return ''
@@ -87,6 +87,7 @@ end
 --[[Tuy nhiên, đổi tên để tránh nhầm với _G.table.concat = table2string()]]
 
 function tableMerges(allTable)
+  if #allTable==1 then return allTable[1] end
   local table_output = {}
   for i=1,#allTable do
     table_output = tableMerge(table_output,allTable[i])
