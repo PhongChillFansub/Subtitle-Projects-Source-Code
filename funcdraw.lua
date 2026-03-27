@@ -2,7 +2,7 @@ script_name = "[Level 2] funcdraw"
 script_description = "[Phòng Chill Fansub] Effect công cụ lệnh vẽ Aegisub"
 script_author = "Phòng Chill Fansub"
 script_version = "3.2"
---[[v3.2 beta 1.0 (prev: preoject 45c). di chuyển lên GitHub, khớp với các hàm trong lib 1]]
+--[[v3.2 beta 1.01 (prev: project 45c). di chuyển lên GitHub, khớp với các hàm trong lib 1]]
 
 fd3LastPos = {0,0}
 --[[fd3LastPos {x,y}: điểm vẽ gốc ban đầu/liền trước]]
@@ -51,7 +51,7 @@ function findPos(x0,y0,r0,rad,mode)
     return out[mode] or _G.table.concat(out,',') 
 end
 --[[findPosRad(x0,y0,r0,a0,mode): tính điểm từ gốc, bán kính, góc rad cho trước. (ko làm tròn)]]
---[[Chế độ đầu ra: 1:x, 2:y, 0:table {x,y}, nil:string 'x,y']]
+--[[Chế độ đầu ra: 1:x, 2:y, nil:table {x,y}, khác:string 'x,y']]
 
 function draw(allTable)
     return _G.table.concat(tableMerges(allTable),' ')
@@ -73,6 +73,7 @@ end
 function semiCircleRad(r0,a0,a1)
     --[[a0 là pha ban đầu, a1 là giá trị góc kéo từ lastPos đến cp3. giới hạn a1 không quá 90 độ]]
     --[[hàm findPos của các tọa độ không đặt giá trị input thứ 5 (mode) -> center có dạng {x,y}]]
+    local r1 = r0*bezierMagicNumber(a1)
     local center = findPos(
         fd3LastPos[1], 
         fd3LastPos[2], 
@@ -89,15 +90,16 @@ function semiCircleRad(r0,a0,a1)
     local cp1 = findPos(
         fd3LastPos[1], 
         fd3LastPos[2], 
-        r0*bezierMagicNumber(a1), 
-        (a0+math.rad(90))%(2*math.pi) 
+        r1, 
+        (a0+math.pi)%(2*math.pi) 
     )
     local cp2 = findPos(
         cp3[1],
         cp3[2],
-        r0*bezierMagicNumber(a1),
-        a0+a1-math.rad(90)%(2*math.pi)
+        r1,
+        (a0+a1-math.pi)%(2*math.pi)
     )
+    --[[findPos() đầu ra: 1:x, 2:y, nil:table {x,y}, khác:string 'x,y']]
     return fd3b(cp1[1],cp1[2],cp2[1],cp2[2],cp3[1],cp3[2])
 end
 --[[semiCircleRad(r0,a0 rad,a1 rad): vẽ cung tròn nhỏ hơn 90 độ deg (giới hạn lí thuyết của đường c-bezier) từ pha a0, kéo góc a1.]]
@@ -108,14 +110,13 @@ function circleRad(r0,a0,a1)
     local sign = a1/(math.abs(a1)==0 and 1 or math.abs(a1))
     a1 = math.abs(_G.clamp(a1,aconv(-360,1),aconv(360,1)))
     --[[Từ giờ, a1_cũ = sign * a1_mới]]
-    local sqa = math.rad(90)
-    for i=1,math.ceil(a1)/sqa do
+    for i=1,math.ceil(a1)/math.pi do
         --[[Vòng lặp trong số lần góc a1 lớn hơn 90 độ, tức chia nhỏ a1 thành các đoạn không lớn hơn 90 độ]]
-        local phase_start = (i-1)sqa
+        local phase_start = (i-1)*math.pi
         circlePart[i]=semiCircleRad(
             r0, 
             a0+sign*phase_start, 
-            sign*math.min( a1-phase_start,sqa )
+            sign*math.min( a1-phase_start,math.pi )
         )
         --[[a1 của lệnh này là đoạn còn lại (a1 trừ (i-1)*90°) hoặc 90° nếu vượt quá]]
     end
@@ -218,9 +219,9 @@ function rotate(radang,originPos,allTable)
                         originPos[2],
                         pairX,
                         pairY 
-                    )+radang,
-                    0 
-                ) 
+                    )+radang
+                )
+                --[[findPos() đầu ra: 1:x, 2:y, nil:table {x,y}, khác:string 'x,y']]
                 --[[3. Áp x và y]] 
                 processData[i0-1] = newPos[1] 
                 processData[i0] = newPos[2] 
@@ -240,6 +241,6 @@ function stretch(stretchAngle,scale,originPos,allTable,postAngle)
     processData = zoom({scale,1},originPos,{processData})
     processData = rotate(stretchAngle+(postAngle or 0),originPos,{processData}) 
     return processData 
-end;;;;;
+end
 --[[stretch(stretchAngle,scale,originPos,allTable[,postAngle]): kéo hình theo tỉ lệ*góc kéo từ mốc,]]
 --[[(postAngle là góc xoay mới (coi như 1 lệnh rotate phía sau.)]]
