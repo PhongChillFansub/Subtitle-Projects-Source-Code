@@ -2,7 +2,7 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo cong bezier (\\moves) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 1.07, 23/3/2026]]
+--[[beta 1.08, 30/3/2026]]
 --[[moves3() dùng pointOnQBezier(), thay vì q2cBezier()+pointOnCBezier()]]
 
 function q2cBezier(qp0,qp1,qp2)
@@ -98,7 +98,8 @@ end
 function moves3(segments,x1,y1,x2,y2,x3,y3,t0,t1)
 	--[[Hàm xấp xỉ tag \moves3 (di chuyển theo đường cong Bezier bậc 2, tuyến tính thời gian)]]
 	--[[Đầu vào: segments: số đoạn xấp xỉ]]
-	local qp0, qp1, qp2 = {x1,y1}, {x2,y2}, {x3,y3}
+	local qp0,qp1,qp2 = {x1,y1}, {x2,y2}, {x3,y3}
+	local cp0,cp1,cp2,cp3 = q2cBezier(qp0,qp1,qp2)
 	local min, max = math.min, math.max
 	local itpl = function(x)
 		return _G.interpolate(x,t0,t1)
