@@ -154,7 +154,15 @@ end
 	local basevct = findPos(0,0,swidth/2,angle(t))
 	--[[Vector cơ bản]]
 	local pos1 = findPos(basevct[1]*-1,basevct[2]*-1,h(t),angle(t)+math.pi)
-	return ''
+	--[[pos1: tọa độ góc dưới bên trái \an1]]
+	local pos7 = findPos(basevct[1]*-1,basevct[2]*-1,-1*h(t),angle(t)+math.pi)
+	--[[pos7: tọa độ góc trên bên trái \an7]]
+	local pos3 = findPos(basevct[1],basevct[2],h(t),angle(t)+math.pi)
+	--[[pos3: tọa độ góc dưới bên phải \an3]]
+	local pos9 = findPos(basevct[1],basevct[2],-1*h(t),angle(t)+math.pi)
+	--[[pos9: tọa độ góc trên bên phải \an9]]
+	local output = {'m',pos7[1],pos7[2],'l',pos9[1],pos9[2],'l',pos1[1],pos1[2],'l',pos3[1],pos3[2]}
+	return _G.table.concat(output,' ')
  end
 
 
