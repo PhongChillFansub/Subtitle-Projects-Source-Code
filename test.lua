@@ -164,6 +164,9 @@ end
 	local output = {'m',pos7[1],pos7[2],'l',pos9[1],pos9[2],'l',pos1[1],pos1[2],'l',pos3[1],pos3[2]}
 	return _G.table.concat(output,' ')
  end
+--[[testdraw1(): tính toán tại mỗi thời điểm t0(0..1), 1 hình chữ nhật xoay từ +45°(kđh) đến +0° theo hàm angle(t)]]
+--[[Hình chữ nhật vừa xoay vừa mở rộng từ chiều cao 0x đến 1.2x, rồi về 1x theo hàm h(x)]]
+--[[Hàm chưa test.]]
 
 
 
