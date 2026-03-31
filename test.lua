@@ -169,8 +169,31 @@ end
 --[[Hàm chưa test.]]
 
 
+multiloop(
+	{
+		math.ceil($lwidth/remember('fxedist',100)),
+		math.ceil($ldur/remember('fxedur',1500))
+	}
+) 
+--[[Sử dụng multiloop({x,y}) thay vì maxloop(x*y).]]
+--[[eplw=jf(maxj,1): số lượng entity trên chiều dài. epdt=jf(maxj,2): số lượng entity theo thời gian]]
+--[[fxedist: chiều rộng mà 1 entity "chiếm dụng". fxedur: thời gian 1 entity "chiếm dụng"]]
 
+retime(
+	'preline',
+	remember('nstart',audioOffset[audioMode]+recall.fxedur*(jf(j,2)-1)+math.random(0,recall.fxedur)),
+	recall.nstart+recall.fxedur
+)
 
+{
+	\an5
+	\move(
+		! remember('nposX', $lleft +recall.fxedist*(jf(j,1)-1) +math.random(-recall.fxedist/2,recall.fxedist/2) ) !,
+		! $ltop !,
+		! recall.nposX +windV2*$lheight !
+	)
+}
+!remember( 'nposX', LRpos[1]+recall.fxedist*(jf(j,1)-1)   +math.random(-recall.fxedist/2,recall.fxedist/2)  )!
 
 
 Comment: 0,0:00:00.00,0:00:00.00,30M3_LR,fallingCB_M,0,0,0,template syl noblank notext fxgroup syl1,
