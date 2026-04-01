@@ -153,15 +153,15 @@ end
 	--[[Hàm h(t) đi qua 3 điểm (t=0;h=0), (t=0.8;h=1.2), (t=1;h=1) dạng parabol]]
 	local basevct = findPos(0,0,swidth/2,angle(t))
 	--[[Vector cơ bản]]
-	local pos1 = findPos(basevct[1]*-1,basevct[2]*-1,h(t),angle(t)+math.pi)
+	local pos1 = findPos(basevct[1]*-1,basevct[2]*-1,h(t)*sheight/2,angle(t)+math.pi/2)
 	--[[pos1: tọa độ góc dưới bên trái \an1]]
-	local pos7 = findPos(basevct[1]*-1,basevct[2]*-1,-1*h(t),angle(t)+math.pi)
+	local pos7 = findPos(basevct[1]*-1,basevct[2]*-1,-1*h(t)*sheight/2,angle(t)+math.pi/2)
 	--[[pos7: tọa độ góc trên bên trái \an7]]
-	local pos3 = findPos(basevct[1],basevct[2],h(t),angle(t)+math.pi)
+	local pos3 = findPos(basevct[1],basevct[2],h(t)*sheight/2,angle(t)+math.pi/2)
 	--[[pos3: tọa độ góc dưới bên phải \an3]]
-	local pos9 = findPos(basevct[1],basevct[2],-1*h(t),angle(t)+math.pi)
+	local pos9 = findPos(basevct[1],basevct[2],-1*h(t)*sheight/2,angle(t)+math.pi/2)
 	--[[pos9: tọa độ góc trên bên phải \an9]]
-	local output = {'m',pos7[1],pos7[2],'l',pos9[1],pos9[2],'l',pos1[1],pos1[2],'l',pos3[1],pos3[2]}
+	local output = {'m',pos7[1],pos7[2],'l',pos9[1],pos9[2],'l',pos3[1],pos3[2],'l',pos1[1],pos1[2]}
 	local tonum = _G.tonumber
 	for i=1,#output do 
 		if tonum(output[i]) then
