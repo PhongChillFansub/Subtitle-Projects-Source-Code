@@ -162,6 +162,12 @@ end
 	local pos9 = findPos(basevct[1],basevct[2],-1*h(t),angle(t)+math.pi)
 	--[[pos9: tọa độ góc trên bên phải \an9]]
 	local output = {'m',pos7[1],pos7[2],'l',pos9[1],pos9[2],'l',pos1[1],pos1[2],'l',pos3[1],pos3[2]}
+	local tonum = _G.tonumber
+	for i=1,#output do 
+		if tonum(output[i]) then
+			output[i]=cnfv4(output[i],0)
+		end
+	end
 	return _G.table.concat(output,' ')
  end
 --[[testdraw1(): tính toán tại mỗi thời điểm t0(0..1), 1 hình chữ nhật xoay từ +45°(kđh) đến +0° theo hàm angle(t)]]
