@@ -2,7 +2,7 @@ script_name = "[Level 2] funcdraw"
 script_description = "[Phòng Chill Fansub] Effect công cụ lệnh vẽ Aegisub"
 script_author = "Phòng Chill Fansub"
 script_version = "3.2"
---[[v3.2 beta 1.01 (prev: project 45c). di chuyển lên GitHub, khớp với các hàm trong lib 1]]
+--[[v3.2 beta 1.02 1/4/2026 (prev: project 45c). di chuyển lên GitHub, khớp với các hàm trong lib 1]]
 
 fd3LastPos = {0,0}
 --[[fd3LastPos {x,y}: điểm vẽ gốc ban đầu/liền trước]]
@@ -44,7 +44,7 @@ function findRad(x0,y0,x1,y1)
 --[[findRad(x0,y0,x1,y1): (2-point-to-angle) tìm góc rad giữa vector A(x0,y0)B(x1,y1) và Ox (ko làm tròn)]]
 
 function findPos(x0,y0,r0,rad,mode) 
-    local out = {x0+r0*math.cos(a0), y0+r0*math.sin(a0)} 
+    local out = {x0+r0*math.cos(rad), y0+r0*math.sin(rad)} 
     if mode == nil then 
         return out
     end
