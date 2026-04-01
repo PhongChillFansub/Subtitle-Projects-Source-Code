@@ -111,68 +111,43 @@ end
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- function testdraw1(posX, posY, swidth, sheight, t)
-	--[[Thử nghiệm fx 1 (31/3/2026+). swidth = $swidth, sheight = $sheight, t = 0..1]]
-	--[[Sử dụng findDist(x1,y1,x2,y2) và findPos(x0,y0,r0,rad,mode) của funcdraw (v3.2 beta 1.01 27/3/2026)]]
-	--[[đầu ra findDist: k: khoảng cách 2 điểm. findPos(mode=nil): {x,y}.]]
-	local angle_range = math.pi/4
-	local angle = function(t)
-		return angle_range*(1-t)
-	end
-	--[[Góc xoay từ t=0,a=45° đến t=1,a=0°]]
-	--[[Chiều kim đồng hồ = chiều dương góc; pha 0°=Ox+ (hướng 3h), pha 90°=Oy+ (hướng 6h)]]
-	local h = function(t)
+--[[Hàm đã test sơ bộ.]]
+function testdraw1(posX, posY, swidth, sheight, t) 
+	--[[Thử nghiệm fx 1 (31/3/2026+). swidth = $swidth, sheight = $sheight, t = 0..1]] 
+	--[[Sử dụng findDist(x1,y1,x2,y2) và findPos(x0,y0,r0,rad,mode) của funcdraw (v3.2 beta 1.01 27/3/2026)]] 
+	--[[đầu ra findDist: k: khoảng cách 2 điểm. findPos(mode=nil): {x,y}.]] 
+	local angle_range = math.pi/4 
+	local angle = function(t) 
+		return angle_range*(1-t) 
+	end 
+	--[[Góc xoay từ t=0,a=45° đến t=1,a=0°]] 
+	--[[Chiều kim đồng hồ = chiều dương góc; pha 0°=Ox+ (hướng 3h), pha 90°=Oy+ (hướng 6h)]] 
+	local h = function(t) 
 		return -2.5*t*t + 3.5*t 
-	end
-	--[[Hàm h(t) đi qua 3 điểm (t=0;h=0), (t=0.8;h=1.2), (t=1;h=1) dạng parabol]]
-	local basevct = findPos(0,0,swidth/2,angle(t))
-	--[[Vector cơ bản]]
-	local pos1 = findPos(basevct[1]*-1,basevct[2]*-1,h(t)*sheight/2,angle(t)+math.pi/2)
-	--[[pos1: tọa độ góc dưới bên trái \an1]]
-	local pos7 = findPos(basevct[1]*-1,basevct[2]*-1,-1*h(t)*sheight/2,angle(t)+math.pi/2)
-	--[[pos7: tọa độ góc trên bên trái \an7]]
-	local pos3 = findPos(basevct[1],basevct[2],h(t)*sheight/2,angle(t)+math.pi/2)
-	--[[pos3: tọa độ góc dưới bên phải \an3]]
-	local pos9 = findPos(basevct[1],basevct[2],-1*h(t)*sheight/2,angle(t)+math.pi/2)
-	--[[pos9: tọa độ góc trên bên phải \an9]]
-	local output = {'m',pos7[1]+posX,pos7[2]+posY,'l',pos9[1]+posX,pos9[2]+posY,pos3[1]+posX,pos3[2]+posY,pos1[1]+posX,pos1[2]+posY}
-	local tonum = _G.tonumber
+	end 
+	--[[Hàm h(t) đi qua 3 điểm (t=0;h=0), (t=0.8;h=1.2), (t=1;h=1) dạng parabol]] 
+	local basevct = findPos(0, 0, swidth/2,angle(t)) 
+	--[[Vector cơ bản]] 
+	local pos1 = findPos(basevct[1]*-1,basevct[2]*-1,h(t)*sheight/2,angle(t)+math.pi/2) 
+	--[[pos1: tọa độ góc dưới bên trái \an1]] 
+	local pos7 = findPos(basevct[1]*-1,basevct[2]*-1,-1*h(t)*sheight/2,angle(t)+math.pi/2) 
+	--[[pos7: tọa độ góc trên bên trái \an7]] 
+	local pos3 = findPos(basevct[1],basevct[2],h(t)*sheight/2,angle(t)+math.pi/2) 
+	--[[pos3: tọa độ góc dưới bên phải \an3]] 
+	local pos9 = findPos(basevct[1],basevct[2],-1*h(t)*sheight/2,angle(t)+math.pi/2) 
+	--[[pos9: tọa độ góc trên bên phải \an9]] 
+	local output = {'m',pos7[1]+posX,pos7[2]+posY,'l',pos9[1]+posX,pos9[2]+posY,pos3[1]+posX,pos3[2]+posY,pos1[1]+posX,pos1[2]+posY} 
+	local tonum = _G.tonumber 
 	for i=1,#output do 
-		if tonum(output[i]) then
-			output[i]=cnfv4(output[i],0)
-		end
-	end
-	return _G.table.concat(output,' ')
- end
---[[testdraw1(): tính toán tại mỗi thời điểm t0(0..1), 1 hình chữ nhật xoay từ +45°(kđh) đến +0° theo hàm angle(t)]]
---[[Hình chữ nhật vừa xoay vừa mở rộng từ chiều cao 0x đến 1.2x, rồi về 1x theo hàm h(x)]]
---[[Hàm chưa test.]]
+		if tonum(output[i]) then 
+			output[i]=cnfv4(output[i],0) 
+		end 
+	end 
+	return _G.table.concat(output,' ') 
+end 
+--[[testdraw1(): tính toán tại mỗi thời điểm t0(0..1), 1 hình chữ nhật xoay từ +45°(kđh) đến +0° theo hàm angle(t)]] 
+--[[Hình chữ nhật vừa xoay vừa mở rộng từ chiều cao 0x đến 1.2x, rồi về 1x theo hàm h(x)]] 
+
 
 
 multiloop(
