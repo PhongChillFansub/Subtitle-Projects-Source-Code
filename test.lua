@@ -137,11 +137,11 @@ end
 
 
 
- function testdraw1(swidth, sheight, t)
+ function testdraw1(posX, posY, swidth, sheight, t)
 	--[[Thử nghiệm fx 1 (31/3/2026+). swidth = $swidth, sheight = $sheight, t = 0..1]]
 	--[[Sử dụng findDist(x1,y1,x2,y2) và findPos(x0,y0,r0,rad,mode) của funcdraw (v3.2 beta 1.01 27/3/2026)]]
 	--[[đầu ra findDist: k: khoảng cách 2 điểm. findPos(mode=nil): {x,y}.]]
-	local angle_range = math.pi/2
+	local angle_range = math.pi/4
 	local angle = function(t)
 		return angle_range*(1-t)
 	end
@@ -161,7 +161,7 @@ end
 	--[[pos3: tọa độ góc dưới bên phải \an3]]
 	local pos9 = findPos(basevct[1],basevct[2],-1*h(t)*sheight/2,angle(t)+math.pi/2)
 	--[[pos9: tọa độ góc trên bên phải \an9]]
-	local output = {'m',pos7[1],pos7[2],'l',pos9[1],pos9[2],'l',pos3[1],pos3[2],'l',pos1[1],pos1[2]}
+	local output = {'m',pos7[1]+posX,pos7[2]+posY,'l',pos9[1]+posX,pos9[2]+posY,pos3[1]+posX,pos3[2]+posY,pos1[1]+posX,pos1[2]+posY}
 	local tonum = _G.tonumber
 	for i=1,#output do 
 		if tonum(output[i]) then
