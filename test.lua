@@ -191,9 +191,25 @@ retime(
 		! remember('nposX', $lleft +recall.fxedist*(jf(j,1)-1) +math.random(-recall.fxedist/2,recall.fxedist/2) ) !,
 		! $ltop !,
 		! recall.nposX +windV2*$lheight !
+		! $lbottom !
 	)
+	\fad(200,200)
+	\frx!remember('rrX',math.random(0,180))!
+	\fry!remember('rrY',math.random(0,360))!
+	\frz!remember('rrZ',math.random(0,360))!
+	\t(
+		\frx!math.random(0,180)!
+		\fry!recall.rrY+math.random(60,300)!
+		\frz!recall.rrZ+math.random(45,315)!
+	)
+	\fscx!remember('nfsc',math.random(70,100))!
+	\fscy!recall.nfsc!
+	\1c&HE2D6F3&
+	\3c&HE2D6F3&
+	\bord2
+	\shad0
+	\p1
 }
-!remember( 'nposX', LRpos[1]+recall.fxedist*(jf(j,1)-1)   +math.random(-recall.fxedist/2,recall.fxedist/2)  )!
 
 
 Comment: 0,0:00:00.00,0:00:00.00,30M3_LR,fallingCB_M,0,0,0,template syl noblank notext fxgroup syl1,
