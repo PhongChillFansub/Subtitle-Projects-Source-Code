@@ -2,6 +2,7 @@ script_name = "[Level 2] funcdraw"
 script_description = "[Phòng Chill Fansub] Thư viện hình vẽ bằng lệnh vẽ của funcdraw fx"
 script_author = "Phòng Chill Fansub"
 script_version = "3.2"
+--[[v3.2 beta 1.01 1/4/2026. Bổ sung 2 hình vẽ nữa của tệp phát triển cũ]]
 --[[Sử dụng funcdraw v3.2 beta 1 (di chuyển lên GitHub.)]]
 --[[Tương đương lib 2 của tệp phát triển funcdraw v3.1.]]
 
@@ -84,3 +85,28 @@ demo2_ring = {
 --[[Vẽ 2 hình tròn (cùng 1 lần vẽ), rồi kéo giãn cả 2 thành elip]]
 --[[Hình vẽ thử nghiệm cho pj 45]]
 
+function moon1(j0,maxj0) 
+    if j0==nil or maxj0==nil or j0<0 then 
+        return nil 
+    end 
+    local startingPoint = {-45,-120} 
+    local ease = {1-(1-_G.clamp(j0/maxj0,0,1))^2.8} 
+    local movingOffset = {-1*startingPoint[1]*(-1+ease[1] ),-1*startingPoint[2]*(-1+ease[1])} 
+    return { 
+        rotate(
+            aconv(-7,1),
+            {-13+movingOffset[1],-63+movingOffset[2]},
+            { 
+                fd3m(-13-194+movingOffset[1],-63+movingOffset[2]), 
+                circleRad(194,math.rad(-180),math.rad(-257)) 
+            }
+        ), 
+        fd3n(_G.table.unpack( findPos(
+            -66+movingOffset[1],
+            -114+movingOffset[2],
+            148,
+            math.rad(-62)
+        ))), 
+        circleRad(148,math.rad(-62),math.rad(214)) 
+    }
+end;;;;;
