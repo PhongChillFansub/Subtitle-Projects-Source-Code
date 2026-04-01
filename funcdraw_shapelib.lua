@@ -49,20 +49,16 @@ end
 
 --[[demo1: hình vẽ từ tệp phát triển (trước khi làm pj 45a, 45c)]]
 demo1 = { 
-    stretch(0,1.9,{0,-2},
-        { 
+    stretch(0,1.9,{0,-2},{ 
             shapeCircle({0,-2},150)
-        },
-        math.rad(-21)
+        }, math.rad(-21)
     ), 
     zoom(
         {1.11,1.11},{0,0},
         { 
-            stretch(0,1.9,{0,0},
-                { 
+            stretch(0,1.9,{0,0},{ 
                     shapeCircle({0,0}, 149 ,-1) 
-                }, 
-                math.rad(-21)
+                }, math.rad(-21)
             ) 
         }
     ), 
@@ -85,7 +81,7 @@ demo2_ring = {
 --[[Vẽ 2 hình tròn (cùng 1 lần vẽ), rồi kéo giãn cả 2 thành elip]]
 --[[Hình vẽ thử nghiệm cho pj 45]]
 
-function moon1(j0,maxj0) 
+moon1 = function(j0,maxj0) 
     if j0==nil or maxj0==nil or j0<0 then 
         return nil 
     end 
@@ -95,8 +91,7 @@ function moon1(j0,maxj0)
     return { 
         rotate(
             aconv(-7,1),
-            {-13+movingOffset[1],-63+movingOffset[2]},
-            { 
+            {-13+movingOffset[1],-63+movingOffset[2]},{ 
                 fd3m(-13-194+movingOffset[1],-63+movingOffset[2]), 
                 circleRad(194,math.rad(-180),math.rad(-257)) 
             }
@@ -109,4 +104,33 @@ function moon1(j0,maxj0)
         ))), 
         circleRad(148,math.rad(-62),math.rad(214)) 
     }
-end;;;;;
+end
+--[[Hình moon1 của tệp phát triển v3.1]]
+
+ring1 = function(j0,maxj0) 
+    if j0==nil or maxj0==nil or j0<0 then 
+        return nil 
+    end 
+    local ease = {1-(1-_G.clamp(j0/maxj0,0,1))^1.7} 
+    local angleRange = {232,360} 
+    return stretch(0,1.9,{0,0},{
+        fd3m(_G.table.unpack(findPos(
+            0,-2,149,
+            math.rad(-55-angleRange[1]-(angleRange[2]-angleRange[1])*ease[1])
+        ))), 
+        circleRad(
+            149,
+            math.rad(-55-angleRange[1]-(angleRange[2]-angleRange[1])*ease[1]),
+            math.rad(angleRange[1]+(angleRange[2]-angleRange[1])*ease[1])
+        ), 
+        fd3n(_G.table.unpack(findPos(
+            0,0,165,math.rad(-55)
+        ))), 
+        circleRad(
+            165,
+            math.rad(-55),
+            math.rad(-angleRange[1]-(angleRange[2]-angleRange[1])*ease[1])
+        )
+    },aconv(-21,1) ) 
+end
+--[[Hình ring1 của tệp phát triển v3.1]]
