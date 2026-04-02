@@ -105,12 +105,6 @@ function simpleCharFadFx(speed,faddur,text)
 	return concat(output)
 end
 
-
-
-
-
-
-
 --[[Hàm đã test sơ bộ.]]
 function testdraw1(posX, posY, swidth, sheight, t) 
 	--[[Thử nghiệm fx 1 (31/3/2026+). swidth = $swidth, sheight = $sheight, t = 0..1]] 
@@ -147,6 +141,14 @@ function testdraw1(posX, posY, swidth, sheight, t)
 end 
 --[[testdraw1(): tính toán tại mỗi thời điểm t0(0..1), 1 hình chữ nhật xoay từ +45°(kđh) đến +0° theo hàm angle(t)]] 
 --[[Hình chữ nhật vừa xoay vừa mở rộng từ chiều cao 0x đến 1.2x, rồi về 1x theo hàm h(x)]] 
+
+
+
+
+
+
+
+
 
 
 
