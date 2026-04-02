@@ -2,8 +2,8 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo cong bezier (\\moves) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 2.00, 2/4/2026]]
---[[bổ sung moves4(), sửa lỗi cụm moves3()]]
+--[[beta 2.01, 2/4/2026]]
+--[[bổ sung moves4(), sửa lỗi cụm moves3(). to-do: hàm xử lí lệnh vẽ -> quỹ đạo?]]
 
 function q2cBezier(qp0,qp1,qp2)
 	--[[Hàm biến đổi tọa độ (2d) đường cong Bezier cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
@@ -85,6 +85,9 @@ function bezier_approx(cp0,cp1,cp2,cp3,segments)
 
 	--[[ti=1/(w1-w0)*( ( (w1^0.5 - w0^0.5)*i/N + w0^0.5 )^2-w0 )]]
 	local cal = function(x,y,i)
+		if i==0 or i==1 then 
+			return i 
+		end
 		local result = 1/(y-x)*string.format('%f', ( ( (y^0.5-x^0.5)*i/segments + x^0.5)^2-x ) )
 		return result
 	end
@@ -199,3 +202,5 @@ function moves4f(segments,bezier_data,offset,t0,t1)
 	end
 	return moves4(segments,output[1],output[2],output[3],output[4],output[5],output[6],output[7],output[8],t0,t1)
 end
+
+--[[to-do: hàm xử lí dữ liệu liên hợp (lệnh vẽ -> quỹ đạo di chuyển?)]]
