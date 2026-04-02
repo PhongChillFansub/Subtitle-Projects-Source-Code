@@ -2,8 +2,8 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo cong bezier (\\moves) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 1.08, 30/3/2026]]
---[[moves3() dùng pointOnQBezier(), thay vì q2cBezier()+pointOnCBezier()]]
+--[[beta 2.00, 2/4/2026]]
+--[[bổ sung moves4(), sửa lỗi cụm moves3()]]
 
 function q2cBezier(qp0,qp1,qp2)
 	--[[Hàm biến đổi tọa độ (2d) đường cong Bezier cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
@@ -100,10 +100,6 @@ function moves3(segments,x1,y1,x2,y2,x3,y3,t0,t1)
 	--[[Đầu vào: segments: số đoạn xấp xỉ]]
 	local qp0,qp1,qp2 = {x1,y1}, {x2,y2}, {x3,y3}
 	local cp0,cp1,cp2,cp3 = q2cBezier(qp0,qp1,qp2)
-	local min, max = math.min, math.max
-	local itpl = function(x)
-		return _G.interpolate(x,t0,t1)
-	end
 	local cnf0 = function(x)
 		return _G.tonumber(_G.string.format('%.0f',x*(t1-t0)))
 	end
@@ -140,7 +136,7 @@ function moves3f(segments,bezier_data,offset,t0,t1)
 	if #bezier_data <6 then
 		--[[dạng {{x1,y1},{x2,y2},{x3,y3}}.]]
 		for i=1,3 do
-			output[2*i-1],output[2*i] = unpack(bezier_data[1])
+			output[2*i-1],output[2*i] = unpack(bezier_data[i])
 			output[2*i-1] = output[2*i-1]+offset[1]
 			output[2*i] = output[2*i]+offset[2]
 		end
@@ -151,4 +147,55 @@ function moves3f(segments,bezier_data,offset,t0,t1)
 		end
 	end
 	return moves3(segments,output[1],output[2],output[3],output[4],output[5],output[6],t0,t1)
+end
+
+function moves4(segments,x1,y1,x2,y2,x3,y3,x4,y4,t0,t1)
+	--[[Hàm xấp xỉ tag \moves4 (di chuyển theo đường cong Bezier bậc 3, tuyến tính thời gian)]]
+	--[[Đầu vào: segments: số đoạn xấp xỉ]]
+	local cnf0 = function(x)
+		return _G.tonumber(_G.string.format('%.0f',x*(t1-t0)))
+	end
+	local cp0,cp1,cp2,cp3 = {x1,y1}, {x2,y2}, {x3,y3}, {x4,y4}
+	moves4_data = {xi={},yi={},ti={},i=bezier_approx(cp0,cp1,cp2,cp3,segments)}
+	--[[moves4_data: xi, yi, ti, i: tọa độ x,y, thời gian tỉ đối tại điểm i (0..1)]]
+	for i=0,segments do
+		local pos = pointOnCBezier(cp0,cp1,cp2,cp3,moves4_data.i[i])
+		moves4_data.xi[i],moves4_data.yi[i] = pos[1],pos[2]
+		moves4_data.ti[i]=cnf0(i/segments)
+	end
+
+function moves4j(j)
+	--[[Hàm đầu ra cho tag \move tại các entity chia bởi lệnh maxloop(segments)]]
+	--[[Đầu ra output: "x1,y1,x2,y2,t1,t2" (\move(output))]]
+	local output = {
+		moves4_data.xi[j-1],
+		moves4_data.yi[j-1],
+		moves4_data.xi[j],
+		moves4_data.yi[j],
+		0,
+		moves4_data.ti[j]-moves4_data.ti[j-1]
+	}
+	return _G.table.concat(output,',')
+end
+
+function moves4f(segments,bezier_data,offset,t0,t1)
+	--[[Hàm rút gọn của moves4()]]
+	--[[Đầu vào: đường bezier {{x1,y1},{x2,y2},{x3,y3},{x4,y4}}, hoặc {x1,y1,x2,y2,x3,y3,x4,y4} (phân biệt bằng #bezier_data)]]
+	--[[offset: tọa độ mốc (vd: $scenter,$smiddle)]]
+	--[[Đầu ra: chạy moves3()]]
+	local output, unpack = {}, _G.table.unpack
+	if #bezier_data <8 then
+		--[[dạng {{x1,y1},{x2,y2},{x3,y3},{x4,y4}}.]]
+		for i=1,4 do
+			output[2*i-1],output[2*i] = unpack(bezier_data[i])
+			output[2*i-1] = output[2*i-1]+offset[1]
+			output[2*i] = output[2*i]+offset[2]
+		end
+	else
+		--[[dạng {x1,y1,x2,y2,x3,y3}]]
+		for i=1,6 do
+			output[i]=bezier_data[i]+offset[(i+1)%2+1]
+		end
+	end
+	return moves4(segments,output[1],output[2],output[3],output[4],output[5],output[6],output[7],output[8],t0,t1)
 end
