@@ -1,8 +1,8 @@
-script_name = "[Misc] autoKanjiTimer"
+scr.ipt_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
---[[v2.0 beta 1.01 22/3/2026]]
+--[[v2.0 beta 2.00 4/4/2026. Sửa lỗi xóa kanji trước kanji cuối khi gộp]]
 
 function get_char_type(char)
     --[[vibe coding (chatgpt, gemini), đã sửa]]
@@ -57,16 +57,20 @@ function auto_kanji_timer_v2(force_merge)
         if ctype=='kanji' then
             --[[char là kanji]]
             if using_kanji ~= '' then
+                --[[Không trong khối kanji hiện thời/không có kanji ở trước]]
+                using_kanji=char
+                --[[Đặt char hiện tại làm kanji sử dụng cho furigana]]
+            else
+                --[[Đang trong khối furigana (lỗi) hoặc phía trước có kanji (nối)]]
                 if using_kanji==last_char then
                     --[[Nhiều kanji liên tiếp]]
                     using_kanji=concat({using_kanji,char})
                 else
-                    --[[chuyển sang kan mới khi đang dùng kan cũ?]]
-                    local msg = '[autoKanjiTimer_v2] L:%d, chuyển sang kan mới %s (i:%d) khi còn kan cũ %s?%s'
-                    _G.aegisub.log(3,msg, orgline.i,char,index,using_kanji,new_line)
+                    --[[Kanji trong khối furi??? Coi như đã đóng.]]
+                    local msg = '[autoKanjiTimer_v2] L:%d, kan %s (i:%d) trong khối furi???%s'
+                    _G.aegisub.log(3,msg, orgline.i,char,index,new_line)
                 end
             end
-            using_kanji=char
         elseif char=='(' then
             --[[char là char mở khối furigana]]
             furigana_mode = true
@@ -88,6 +92,11 @@ function auto_kanji_timer_v2(force_merge)
             output[#output] = concat({output[#output],char})
         elseif ctype=='hiragana' or ctype=='katakana' then
             --[[char là kana]]
+            if (using_kanji ~= '' and not furigana_mode) then 
+                --[[Kanji đang dùng không có furigana]]
+                local msg = '[autoKanjiTimer_v2] L: %d, kan %s (i<%d) không có furi?%s'
+                _G.aegisub.log(3,msg,orgline.i,using_kanji,index,new_line)
+            end
             if furigana_mode then
                 --[[Chữ nằm trong 1 khối furigana của using_kanji]]
                 --[[Thêm đơn vị đầu ra mới: <using_kanji>|<char> hoặc #|<char> nếu ko phải char đầu của khối (liền sau dấu '(')]]
