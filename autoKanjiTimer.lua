@@ -2,7 +2,7 @@ scr.ipt_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
---[[v2.0 beta 2.00 4/4/2026. Sửa lỗi xóa kanji trước kanji cuối khi gộp]]
+--[[v2.0 beta 2.01 4/4/2026. Sửa lỗi xóa kanji trước kanji cuối khi gộp]]
 
 function get_char_type(char)
     --[[vibe coding (chatgpt, gemini), đã sửa]]
@@ -56,19 +56,22 @@ function auto_kanji_timer_v2(force_merge)
         _G.aegisub.log(notif_char,'[autoKanjiTimer_v2] L:%d, char \'%s\' (i=%d). %s',orgline.i,char,index,new_line)
         if ctype=='kanji' then
             --[[char là kanji]]
-            if using_kanji ~= '' then
-                --[[Không trong khối kanji hiện thời/không có kanji ở trước]]
-                using_kanji=char
-                --[[Đặt char hiện tại làm kanji sử dụng cho furigana]]
+            if get_char_type(last_char) == 'kanji' then
+                --[[Liên kết 2 từ kanji (có char trong using_kanji và last_char cũng là kanji)]]
+                --[[Không nhất thiết using_kanji = last_char, vd như nối 3+ kanji]]
+                using_kanji=concat({using_kanji,char})
             else
-                --[[Đang trong khối furigana (lỗi) hoặc phía trước có kanji (nối)]]
-                if using_kanji==last_char then
-                    --[[Nhiều kanji liên tiếp]]
-                    using_kanji=concat({using_kanji,char})
-                else
-                    --[[Kanji trong khối furi??? Coi như đã đóng.]]
+                --[[Không liên kết kanji. Nếu có using_kanji, thì tức là lỗi (giữa 2 kanji có kana ngoài furi)]]
+                if furigana_mode then
+                    --[[kanji trong khối furi. Xử lí bằng cách coi như cụm kanji-furi mới, reset using_kanji.]]
                     local msg = '[autoKanjiTimer_v2] L:%d, kan %s (i:%d) trong khối furi???%s'
                     _G.aegisub.log(3,msg, orgline.i,char,index,new_line)
+                    using_kanji=char
+                else
+                    --[[Kanji không trong khối furi. Tức là using_kanji không có furi tương ứng]]
+                    --[[Xử lí: bỏ qua.]]
+                    local msg = '[autoKanjiTimer_v2] L: %d, kan %s (i<%d) không có furi?%s'
+                    _G.aegisub.log(3,msg,orgline.i,using_kanji,index,new_line)
                 end
             end
         elseif char=='(' then
@@ -93,14 +96,14 @@ function auto_kanji_timer_v2(force_merge)
         elseif ctype=='hiragana' or ctype=='katakana' then
             --[[char là kana]]
             if (using_kanji ~= '' and not furigana_mode) then 
-                --[[Kanji đang dùng không có furigana]]
+                --[[using_kanji không có furi tương ứng]]
                 local msg = '[autoKanjiTimer_v2] L: %d, kan %s (i<%d) không có furi?%s'
                 _G.aegisub.log(3,msg,orgline.i,using_kanji,index,new_line)
             end
             if furigana_mode then
                 --[[Chữ nằm trong 1 khối furigana của using_kanji]]
                 --[[Thêm đơn vị đầu ra mới: <using_kanji>|<char> hoặc #|<char> nếu ko phải char đầu của khối (liền sau dấu '(')]]
-                output[#output+1]= _G.string.format(last_char=='(' and '%s|<%s' or '%s|%s',last_char=='(' and using_kanji or '',char)
+                output[#output+1]= _G.string.format(last_char=='(' and '%s|<%s' or '%s|%s',last_char=='(' and using_kanji or '#',char)
                 _G.aegisub.log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, tạo syl mới i=%d, \'%s\'%s',orgline.i,#output,output[#output],new_line)
             else
                 --[[Chữ nằm riêng lẻ, không trong khối furigana]]
@@ -189,7 +192,8 @@ function auto_kanji_timer_v2(force_merge)
             elseif LRdata[gotLRdata].kara[iLR].duration==0 then
                 iLR=iLR+1
             else
-                _G.aegisub.log(3,'[autoKanjiTimer_v2] L:%d, còn trường hợp nào khác à? (%d/%d,%d/%d)%s',orgline.i, iJP, #output, iLR,#LRdata[gotLRdata].kara,new_line)
+                local msg = '[autoKanjiTimer_v2] L:%d, còn trường hợp nào khác à? (%d/%d,%d/%d)%s' 
+                _G.aegisub.log(3,msg,orgline.i, iJP, #output, iLR,#LRdata[gotLRdata].kara,new_line)
             end
             if (iJP>#output) or iLR>#LRdata[gotLRdata].kara then
                 if output[iJP] and output[iJP]:find('{\\k0}') then
