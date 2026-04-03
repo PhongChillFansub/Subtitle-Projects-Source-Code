@@ -1,8 +1,8 @@
-scr.ipt_name = "[Misc] autoKanjiTimer"
+script_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
---[[v2.0 beta 2.01 4/4/2026. Sửa lỗi xóa kanji trước kanji cuối khi gộp]]
+--[[v2.0 beta 2.02 4/4/2026. Sửa lỗi xóa kanji trước kanji cuối khi gộp]]
 
 function get_char_type(char)
     --[[vibe coding (chatgpt, gemini), đã sửa]]
