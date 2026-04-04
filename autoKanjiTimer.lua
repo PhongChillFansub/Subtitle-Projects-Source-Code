@@ -2,7 +2,7 @@ script_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
---[[v2.0 beta 2.02 4/4/2026. Sửa lỗi xóa kanji trước kanji cuối khi gộp]]
+--[[v2.0 beta 2.03 4/4/2026. Sửa lỗi xóa kanji trước kanji cuối khi gộp]]
 
 function get_char_type(char)
     --[[vibe coding (chatgpt, gemini), đã sửa]]
@@ -52,16 +52,16 @@ function auto_kanji_timer_v2(force_merge)
     local output, new_line, concat = {}, string.char(10), _G.table.concat
     local using_kanji, last_char, furigana_mode = '','', false
     for char,index in _G.unicode.chars(orgline.text_stripped) do
-        local ctype = get_char_type(char)
+        local ctype, ltype = get_char_type(char), get_char_type(last_char ~= '' and last_char or force_merge)
         _G.aegisub.log(notif_char,'[autoKanjiTimer_v2] L:%d, char \'%s\' (i=%d). %s',orgline.i,char,index,new_line)
         if ctype=='kanji' then
             --[[char là kanji]]
-            if get_char_type(last_char) == 'kanji' then
+            if index==1 or ltype == 'kanji' then
                 --[[Liên kết 2 từ kanji (có char trong using_kanji và last_char cũng là kanji)]]
                 --[[Không nhất thiết using_kanji = last_char, vd như nối 3+ kanji]]
                 using_kanji=concat({using_kanji,char})
-            else
-                --[[Không liên kết kanji. Nếu có using_kanji, thì tức là lỗi (giữa 2 kanji có kana ngoài furi)]]
+            elseif using_kanji ~= '' then
+                --[[Không liên kết kanji nhưng vẫn có using_kanji? Nếu có furigana_mode, thì tức là lỗi (giữa 2 kanji có kana ngoài furi)]]
                 if furigana_mode then
                     --[[kanji trong khối furi. Xử lí bằng cách coi như cụm kanji-furi mới, reset using_kanji.]]
                     local msg = '[autoKanjiTimer_v2] L:%d, kan %s (i:%d) trong khối furi???%s'
@@ -73,11 +73,15 @@ function auto_kanji_timer_v2(force_merge)
                     local msg = '[autoKanjiTimer_v2] L: %d, kan %s (i<%d) không có furi?%s'
                     _G.aegisub.log(3,msg,orgline.i,using_kanji,index,new_line)
                 end
+            else
+                --[[Không liên kết kanji, using_kanji trống, thì đây đơn giản là kanji lẻ mới]]
+                --[[Xử lí: thêm bình thường]]
+                using_kanji=char
             end
         elseif char=='(' then
             --[[char là char mở khối furigana]]
             furigana_mode = true
-            if index==1 or last_char ~= using_kanji then
+            if index==1 or ltype ~= 'kanji' then
                 --[[trước dấu '(' không có chữ nào, hoặc chữ khác với using_kanji?]]
                 local msg = '[autoKanjiTimer_v2] L:%d, đặt dấu \'%s\' (i:%d) bất thường (đầu câu, hoặc không liền sau kanji)?%sCâu: %s%sVị trí: sau %s%s'
                 _G.aegisub.log(3,msg, orgline.i,char,index,new_line,orgline.text_stripped,new_line,last_char,new_line)
@@ -111,7 +115,7 @@ function auto_kanji_timer_v2(force_merge)
                 _G.aegisub.log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, tạo syl mới i=%d, \'%s\'%s',orgline.i,#output,output[#output],new_line)
             end
         elseif ctype=='romaji' then
-            if index==1 or get_char_type(last_char)~='romaji' then
+            if index==1 or ltype~='romaji' then
                 output[#output+1]=char
                 _G.aegisub.log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, tạo syl mới i=%d, \'%s\'%s',orgline.i,#output,output[#output],new_line)
             else
@@ -119,8 +123,8 @@ function auto_kanji_timer_v2(force_merge)
             end
         elseif ctype=='other' then
             _G.aegisub.log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, kí tự \'%s\' (i:%d) là \'other\'?%s',orgline.i,char,index,new_line)
-            _G.aegisub.log(notif_sylcreate,'%s%s',get_char_type(last_char),new_line)
-            if index==1 or last_char==')' or get_char_type(last_char)~='other' then
+            _G.aegisub.log(notif_sylcreate,'%s%s',ltype,new_line)
+            if index==1 or last_char==')' or ltype~='other' then
                 output[#output+1]=char
                 _G.aegisub.log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, tạo syl mới i=%d, \'%s\'%s',orgline.i,#output,output[#output],new_line)
             else
