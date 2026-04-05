@@ -2,8 +2,8 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo phức tạp (\\moves, \\mover) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 2.02, 5/4/2026]]
---[[to-do: bổ sung mover()? hàm xử lí lệnh vẽ -> quỹ đạo? hàm liên hợp? khoảng ti tùy chỉnh trong 0..1?]]
+--[[beta 2.03, 5/4/2026]]
+--[[to-do: bổ sung mover()? hàm xử lí lệnh vẽ -> quỹ đạo? hàm liên hợp? khoảng t_i tùy chỉnh trong 0..1?]]
 
 function q2cBezier(qp0,qp1,qp2)
 	--[[Hàm biến đổi tọa độ (2d) đường cong Bezier cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
@@ -49,15 +49,15 @@ end
 
 function bezier_approx(cp0,cp1,cp2,cp3,segments)
 	--[[Hàm xấp xỉ dựa trên tích phân mật độ điểm (power-law approx) cho bezier bậc 3]]
-	--[[Đầu ra: dãy segments-1 giá trị ti (loại bỏ t0=0 và t_segments=1)]]
+	--[[Đầu ra: dãy segments+1 giá trị ti (gồm 2 đầu t_0=0 và t_segments=1)]]
 	--[[Thuật toán (hỏi Gemini lol):...]]
 	--[[a0(x,y)=6(cp0-2cp1+cp2); a1(x,y)=6(cp1-2cp2+cp3)]]
 	--[[v0(x,y)=3(cp1-cp0); v1(x,y)=3(cp3-cp2)]]
 	--[[ad(f(x,y)) = sqrt(a0.x^2+a0.y^2)]]
 	--[[w0=sqrt(ad(a0))*ad(v0)]]
 	--[[w1=sqrt(ad(a1))*ad(v1)]]
-	--[[ti=i/segments (nếu w1=w0)]]
-	--[[ti=1/(w1-w0)*( ( (w1^0.5 - w0^0.5)*i/N + w0^0.5 )^2-w0 )]]
+	--[[t_i=i/segments (nếu w1=w0)]]
+	--[[t_i=1/(w1-w0)*( ( (w1^0.5 - w0^0.5)*i/N + w0^0.5 )^2-w0 )]]
 	local sqrt = math.sqrt
 	local vctAccel = function(p1,p2,p3,plane)
 		return 6*(p1[plane]-2*p2[plane]+p3[plane])
