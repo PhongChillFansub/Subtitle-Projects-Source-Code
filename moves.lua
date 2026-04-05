@@ -1,9 +1,9 @@
 script_name = "[Level 2] moves"
-script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo cong bezier (\\moves) với VSFilter (không dùng VSFilterMod)"
+script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo phức tạp (\\moves, \\mover) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 2.01, 2/4/2026]]
---[[bổ sung moves4(), sửa lỗi cụm moves3(). to-do: hàm xử lí lệnh vẽ -> quỹ đạo?]]
+--[[beta 2.02, 5/4/2026]]
+--[[to-do: bổ sung mover()? hàm xử lí lệnh vẽ -> quỹ đạo? hàm liên hợp? khoảng ti tùy chỉnh trong 0..1?]]
 
 function q2cBezier(qp0,qp1,qp2)
 	--[[Hàm biến đổi tọa độ (2d) đường cong Bezier cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
