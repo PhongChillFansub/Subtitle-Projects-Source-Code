@@ -2,9 +2,57 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo phức tạp (\\moves, \\mover) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 2.03, 5/4/2026]]
---[[to-do: bổ sung mover()? hàm xử lí lệnh vẽ -> quỹ đạo? hàm liên hợp? khoảng t_i tùy chỉnh trong 0..1?]]
+--[[beta 2.04, 7/4/2026]]
+--[[to-do: bổ sung mover()? hàm xử lí lệnh vẽ -> quỹ đạo? hàm liên hợp? khoảng t_i tùy chỉnh trong 0..1 để ghép moves-mover?]]
 
+
+
+--[[Thuật toán đề xuất mới (GPAI):]]
+--[[Áp dụng cho chuyển động tổng quát của điểm (tịnh tiến quỹ đạo Bezier + chuyển động quay)]]
+--[[Các đầu vào: tọa độ cp<0-3>,r0,r1,p0,p1]]
+--[[Ở đây điểm chuyển động theo quỹ đạo Bezier, chuyển động quay và thay đổi bán kính đều tuyến tính theo t=0..1]]
+--[[B1: Tính toán các thành phần gia tốc, vận tốc]]
+
+--[[B1.1: Thành phần gia tốc]]
+--[[B1.1a: gia tốc chuyển động theo quỹ đạo Bezier (do tag \\moves) a_b(t)]]
+--[[ a_b(t) = 6(1-t)(cp0-2*cp1+cp2)+6t(cp1-2*cp2+cp3)]]
+
+--[[B1.1b: gia tốc hướng tâm của chuyển động quay a_ht(t), thành phần của gia tốc tổng hợp a_r(t) do tag \\mover]]
+--[[ vr: vận tốc? xuyên tâm. vr=r1-r0]]
+--[[ r(t): bán kính theo t, ở đây là r(t) = r0+vr*t]]
+--[[ ω (ở đây ghi vp): vận tốc? góc. vp=p1-p0]]
+--[[ ϕ(t) (ở đây ghi p(t)): pha theo t, ở đây là p(t) = p0+vp*t]]
+--[[ vct_ht(t): vector hướng tâm/pháp tuyến {cos p(t); sin p(t)}]]
+--[[ a_ht(t) = -r(t)*(vp^2)*vct_ht(t)]]
+
+--[[B1.1c: gia tốc Coriolis của chuyển động quay + xuyên tâm a_c(t), thành phần của gia tốc tổng hợp a_r(t) do tag \\mover]]
+--[[ vct_tt(t): vector tiếp tuyến {-sin p(t); cos p(t)}]]
+--[[ a_c(t) = 2*vr*vp*vct_tt(t)]]
+
+--[[B1.2: Thành phần vận tốc]]
+--[[B1.2a: vận tốc chuyển động theo quỹ đạo Bezier (do tag \\moves) v_b(t)]]
+--[[ v_b(t)=3((1-t)^2)(cp1-cp0)+6(1-t)t(cp2-cp1)+3(t^2)(cp3-cp2), tổng quát với t=0..1. Công thức cũ/rút gọn chỉ áp dụng với t=0 và t=1]]
+
+--[[B1.2b: vận tốc hướng tâm của chuyển động quay v_ht(t), thành phần của vận tốc tổng hợp v_r(t) do tag \\mover]]
+--[[ v_ht(t) = vr*vct_ht(t)]]
+
+--[[B1.2c: vận tốc Coriolis của chuyển động quay + xuyên tâm v_c(t), thành phần của vận tốc tổng hợp v_r(t) do tag \\mover]]
+--[[ v_c(t) = r(t)*vp*vct_tt(t)]]
+
+--[[B2: Tính vận tốc, gia tốc tổng hợp và trọng số (của cả 2 tag tác dụng lên điểm)]]
+--[[a(t) = a_b(t) + a_ht(t) + a_c(t)]]
+--[[v(t) = v_b(t) + v_ht(t) + v_c(t)]]
+--[[w(t) = sqrt( vctLen(a(t)) )*vctLen(v(t))]]
+
+--[[B3: Tính vị trí tối ưu bằng hàm approx (với w0=w(start),w1=w(end), có thể là 0..1 hoặc đoạn bên trong nó)]]
+--[[t_i = 1/(w1-w0)*( ( (w1^0.5 - w0^0.5)*i/N + w0^0.5 )^2-w0 )]]
+
+
+
+
+
+--[[qpi = {x,y} (i:0,1,2)]]
+--[[cpi = {x,y} (i:0,1,2,3)]]
 function q2cBezier(qp0,qp1,qp2)
 	--[[Hàm biến đổi tọa độ (2d) đường cong Bezier cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
 	--[[Thuật toán: cp0=qp0, cp1=cp0+2/3*(qp1-qp0), cp2=qp2+2/3*(qp1-qp2), cp3=qp2]]
@@ -85,15 +133,12 @@ function bezier_approx(cp0,cp1,cp2,cp3,segments)
 
 	--[[ti=1/(w1-w0)*( ( (w1^0.5 - w0^0.5)*i/N + w0^0.5 )^2-w0 )]]
 	local cal = function(x,y,i)
-		if i==0 or i==1 then 
-			return i 
-		end
 		local result = 1/(y-x)*string.format('%f', ( ( (y^0.5-x^0.5)*i/segments + x^0.5)^2-x ) )
 		return result
 	end
 	local output = {}
 	for i=0,segments do
-		output[i]=(w1-w0==0 and i/segments or cal(w0,w1,i))
+		output[i]=((w1-w0==0 or i==0 or i==segments) and i/segments or cal(w0,w1,i))
 	end
 	return output
 end
