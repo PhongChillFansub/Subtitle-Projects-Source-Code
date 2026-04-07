@@ -2,7 +2,8 @@ script_name = "[Level 1] Lib"
 script_description = "[Phòng Chill Fansub] Thư viện hàm áp dụng cho hiệu ứng Aegisub."
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 14.11 22/3/2026]]
+--[[beta 14.12 8/4/2026]]
+--[[Thêm hàm vctSum(vctSumSlot,vctComponentList) cho moves]]
 
 function cmt()
   return ''
@@ -242,3 +243,16 @@ function invert_colorHSV(color)
   local H,S,V = HSL2HSV(colorRGB2HSL(color))
   return _G.HSV_to_RGB((H+180)%360,S,V)
 end
+
+function vctSum(vctSumSlot,vctComponentList)
+  --[[Hàm cộng các vector (số chiều quy định bằng #vctSumSlot)]]
+  --[[Đầu vào: bảng 1 chiều vctSumSlot, bảng mẹ vctComponentList gồm các bảng con không ít index hơn vctSumSlot]]
+  --[[Đầu ra: thay đổi trực tiếp giá trị của vctSumSlot]]
+  for plane=1,#vctSumSlot do
+    for component=1,#vctComponentList do
+      vctSumSlot[plane]=vctSumSlot[plane]+vctComponentList[component][plane]
+    end
+  end
+  return vctSumSlot
+end
+--[[]]
