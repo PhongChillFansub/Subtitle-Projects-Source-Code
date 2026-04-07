@@ -2,10 +2,52 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo phức tạp (\\moves, \\mover) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 2.04, 7/4/2026]]
+--[[beta 2.05, 7/4/2026]]
 --[[to-do: bổ sung mover()? hàm xử lí lệnh vẽ -> quỹ đạo? hàm liên hợp? khoảng t_i tùy chỉnh trong 0..1 để ghép moves-mover?]]
 
+--[[qpi = {x,y} (i:0,1,2)]]
+--[[cpi = {x,y} (i:0,1,2,3)]]
+function q2cBezier(qp0,qp1,qp2)
+	--[[Hàm biến đổi tọa độ (2d) đường cong Bezier cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
+	--[[Thuật toán: cp0=qp0, cp1=cp0+2/3*(qp1-qp0), cp2=qp2+2/3*(qp1-qp2), cp3=qp2]]
+	--[[Cấu trúc các điểm đầu vào và ra: 2d (1: x, 2:y)]]
+	local tblcpy = _G.table.copy
+	local cp0, cp1, cp2, cp3 = tblcpy(qp0), {0,0}, {0,0}, tblcpy(qp2)
+	for plane=1,2 do
+		cp1[plane]=string.format('%.0f',qp0[plane]+2/3*(qp1[plane]-qp0[plane]))
+		cp2[plane]=string.format('%.0f',qp2[plane]+2/3*(qp1[plane]-qp2[plane]))
+	end
+	return cp0,cp1,cp2,cp3 
+end
 
+function pointOnQBezier(qp0,qp1,qp2,value) 
+	--[[Hàm tìm vị trí của điểm có t=value (0..1) trên đường bezier cấp 2 (quadratic). Ít dùng do chuyển sang chuẩn Bezier bậc 3]] 
+	local itpl0 = function(posA,posB) 
+		local itpl = _G.interpolate 
+		return {itpl(value,posA[1],posB[1]),itpl(value,posA[2],posB[2])} 
+	end 
+	local pos = itpl0(itpl0(qp0,qp1),itpl0(qp1,qp2)) 
+	for i=1,2 do 
+		pos[i] = string.format('%.0f',pos[i]) 
+	end 
+	return pos 
+end
+
+function pointOnCBezier(cp0,cp1,cp2,cp3,value)
+	--[[Hàm tìm vị trí của điểm có t=value (0..1) trên đường bezier cấp 3 (cubic)]]
+	--[[Thuật toán: với lerp2d(value,posA->posB)=(A,B)]]
+	--[[pos = ( ((cp0,cp1),(cp1,cp2)) , ((cp1,cp2),(cp2,cp3)) )]]
+	local itpl0 = function(posA,posB) 
+		local itpl = _G.interpolate
+		return {itpl(value,posA[1],posB[1]),itpl(value,posA[2],posB[2])}
+	end
+	local optimized12 = itpl0(cp1,cp2)
+	local pos = itpl0( itpl0(itpl0(cp0,cp1),optimized12) , itpl0(optimized12,itpl0(cp2,cp3)) )
+	for i=1,2 do 
+		pos[i] = string.format('%.0f',pos[i]) 
+	end
+	return pos
+end
 
 --[[Thuật toán đề xuất mới (GPAI):]]
 --[[Áp dụng cho chuyển động tổng quát của điểm (tịnh tiến quỹ đạo Bezier + chuyển động quay)]]
@@ -46,54 +88,10 @@ script_version = "1.0"
 
 --[[B3: Tính vị trí tối ưu bằng hàm approx (với w0=w(start),w1=w(end), có thể là 0..1 hoặc đoạn bên trong nó)]]
 --[[t_i = 1/(w1-w0)*( ( (w1^0.5 - w0^0.5)*i/N + w0^0.5 )^2-w0 )]]
-
-
-
-
-
---[[qpi = {x,y} (i:0,1,2)]]
---[[cpi = {x,y} (i:0,1,2,3)]]
-function q2cBezier(qp0,qp1,qp2)
-	--[[Hàm biến đổi tọa độ (2d) đường cong Bezier cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
-	--[[Thuật toán: cp0=qp0, cp1=cp0+2/3*(qp1-qp0), cp2=qp2+2/3*(qp1-qp2), cp3=qp2]]
-	--[[Cấu trúc các điểm đầu vào và ra: 2d (1: x, 2:y)]]
-	local tblcpy = _G.table.copy
-	local cp0, cp1, cp2, cp3 = tblcpy(qp0), {0,0}, {0,0}, tblcpy(qp2)
-	for plane=1,2 do
-		cp1[plane]=string.format('%.0f',qp0[plane]+2/3*(qp1[plane]-qp0[plane]))
-		cp2[plane]=string.format('%.0f',qp2[plane]+2/3*(qp1[plane]-qp2[plane]))
-	end
-	return cp0,cp1,cp2,cp3 
+function general_approx(cp0,cp1,cp2,cp3,sr,sp,segments)
+	return ''
 end
 
-function pointOnQBezier(qp0,qp1,qp2,value) 
-	--[[Hàm tìm vị trí của điểm có t=value (0..1) trên đường bezier cấp 2 (quadratic)]] 
-	local itpl0 = function(posA,posB) 
-		local itpl = _G.interpolate 
-		return {itpl(value,posA[1],posB[1]),itpl(value,posA[2],posB[2])} 
-	end 
-	local pos = itpl0(itpl0(qp0,qp1),itpl0(qp1,qp2)) 
-	for i=1,2 do 
-		pos[i] = string.format('%.0f',pos[i]) 
-	end 
-	return pos 
-end
-
-function pointOnCBezier(cp0,cp1,cp2,cp3,value)
-	--[[Hàm tìm vị trí của điểm có t=value (0..1) trên đường bezier cấp 3 (cubic)]]
-	--[[Thuật toán: với lerp2d(value,posA->posB)=(A,B)]]
-	--[[pos = ( ((cp0,cp1),(cp1,cp2)) , ((cp1,cp2),(cp2,cp3)) )]]
-	local itpl0 = function(posA,posB) 
-		local itpl = _G.interpolate
-		return {itpl(value,posA[1],posB[1]),itpl(value,posA[2],posB[2])}
-	end
-	local optimized12 = itpl0(cp1,cp2)
-	local pos = itpl0( itpl0(itpl0(cp0,cp1),optimized12) , itpl0(optimized12,itpl0(cp2,cp3)) )
-	for i=1,2 do 
-		pos[i] = string.format('%.0f',pos[i]) 
-	end
-	return pos
-end
 
 function bezier_approx(cp0,cp1,cp2,cp3,segments)
 	--[[Hàm xấp xỉ dựa trên tích phân mật độ điểm (power-law approx) cho bezier bậc 3]]
