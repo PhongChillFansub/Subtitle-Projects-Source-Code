@@ -2,11 +2,30 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo phức tạp (\\moves, \\mover) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 2.05, 7/4/2026]]
---[[to-do: bổ sung mover()? hàm xử lí lệnh vẽ -> quỹ đạo? hàm liên hợp? khoảng t_i tùy chỉnh trong 0..1 để ghép moves-mover?]]
+--[[beta 2.06, 8/4/2026]]
+--[[Bổ sung hàm tổng quát và chuyển đổi line - cubic bezier. to-do: hàm xử lí lệnh vẽ -> quỹ đạo?]]
 
 --[[qpi = {x,y} (i:0,1,2)]]
 --[[cpi = {x,y} (i:0,1,2,3)]]
+
+--[[Hàm Gemini viết: line2cBezier: chuyển đổi đường thẳng thành đường Bezier bậc 3]]
+function line_to_bezier3(x1, y1, x2, y2)
+    --[[ Bezier bậc 3 cần 4 điểm: P0, P1, P2, P3]]
+    --[[Với đoạn thẳng, ta có thể đặt:]]
+    --[[P1 nằm tại 1/3 đoạn thẳng]]
+    --[[P2 nằm tại 2/3 đoạn thẳng]]
+    
+    local c1x = x1 + (x2 - x1) / 3
+    local c1y = y1 + (y2 - y1) / 3
+    
+    local c2x = x1 + 2 * (x2 - x1) / 3
+    local c2y = y1 + 2 * (y2 - y1) / 3
+    
+    --[[Trả về 4 cặp tọa độ]]
+    return x1, y1, c1x, c1y, c2x, c2y, x2, y2
+end
+--[[Hết đoạn Gemini viết]]
+
 function q2cBezier(qp0,qp1,qp2)
 	--[[Hàm biến đổi tọa độ (2d) đường cong Bezier cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
 	--[[Thuật toán: cp0=qp0, cp1=cp0+2/3*(qp1-qp0), cp2=qp2+2/3*(qp1-qp2), cp3=qp2]]
@@ -89,8 +108,147 @@ end
 --[[B3: Tính vị trí tối ưu bằng hàm approx (với w0=w(start),w1=w(end), có thể là 0..1 hoặc đoạn bên trong nó)]]
 --[[t_i = 1/(w1-w0)*( ( (w1^0.5 - w0^0.5)*i/N + w0^0.5 )^2-w0 )]]
 function general_approx(cp0,cp1,cp2,cp3,sr,sp,segments)
-	return ''
+	--[[Hàm xấp xỉ tổng quát cho chuyển động tổng hợp theo quỹ đạo bezier + xuyên tâm + xoay đồng thời, cùng tuyến tính theo thời gian]]
+	--[[Đầu vào: 4 điểm điều khiển cp<i=0..3>={x,y}, sr={r0,r1},sp={p0,p1}]]
+	--[[sr,sp là "quãng đường" của việc thay đổi bán kính r và pha p]]
+	--[[Đầu ra: dãy segments+1 giá trị t[i] (gồm 2 đầu t[0]=0 và t[segments]=1)]]
+	--[[Thuật toán: GPAI, ở trên]]
+	local sqrt,cos,sin = math.sqrt,math.cos,math.sin
+	local vctLen = function(vct)
+		return sqrt(vct[1]^2+vct[2]^2)
+		--[[Hàm tính độ dài vector]]
+	end
+
+	--[[B1.1a]]
+	local a_b0={0,0}
+	local a_b=function(t)
+		for plane=1,2 do 
+			a_b0[plane]=6*(1-t)*(cp0[plane]-2*cp1[plane]+cp2[plane])+6*t*(cp1[plane]-2*cp2[plane]+cp3[plane])
+		end
+		return a_b0
+	end
+	--[[Hàm tính gia tốc chuyển động theo quỹ đạo Bezier]]
+	
+	--[[B1.1b]]
+	local vr,vp = sr[2]-sr[1],sp[2]-sp[1]
+	--[[Tính toán vận tốc xuyên tâm và vận tốc góc]]
+	local r=function(t)
+		return sr[1]+vr*t
+	end
+	--[[Hàm bán kính r (px) theo t]]
+	local p=function(t)
+		return sp[1]+vp*t
+	end
+	--[[Hàm pha p (rad) theo t]]
+	local vct_ht0={0,0}
+	local vct_ht=function(t)
+		local p_ti=p(t)
+		vct_ht0[1]=cos(p_ti)
+		vct_ht0[2]=sin(p_ti)
+		return vct_ht0
+	end
+	--[[Hàm tính vector pháp tuyến theo t]]
+	local a_ht0 = {0,0}
+	local a_ht=function(t)
+		local r_ti=r(t)
+		local vct_ht_ti=vct_ht(t)
+		for plane=1,2 do
+			a_ht0[plane]=-1*r_ti*(vp*vp)*vct_ht_ti[plane]
+		end
+		return a_ht0
+	end
+	--[[Hàm tính gia tốc hướng tâm của chuyển động quay]]
+
+	--[[B1.1c]]
+	local vct_tt0={0,0}
+	local vct_tt=function(t)
+		local p_ti=p(t)
+		vct_tt0[1]=-1*sin(p_ti)
+		vct_tt0[2]=cos(p_ti)
+		return vct_tt0
+	end
+	--[[Hàm tính vector tiếp tuyến theo t]]
+	local a_c0 = {0,0}
+	local a_c=function(t)
+		local r_ti=r(t)
+		local vct_tt_ti=vct_tt(t)
+		for plane=1,2 do
+			a_c0[plane]=r_ti*vp*vct_tt_ti[plane]
+		end
+		return a_c0
+	end
+	--[[Hàm tính gia tốc Coriolis của chuyển động quay + xuyên tâm]]
+
+	--[[B1.2a]]
+	local v_b0={0,0}
+	local v_b=function(t)
+		for plane=1,2 do 
+			v_b0[plane]=3*(1-t)*(1-t)*(cp1[plane]-cp0[plane])+6*(1-t)*t*(cp2[plane]-cp1[plane])+*3*t*t*(cp3[plane]-cp2[plane])
+		end
+		return v_b0
+	end
+	--[[Hàm tính vận tốc chuyển động theo quỹ đạo Bezier]]
+
+	--[[B1.2b]]
+	local v_ht0={0,0}
+	local v_ht=function(t)
+		local vct_ht_ti=vct_ht(t)
+		for plane=1,2 do
+			v_ht0[plane]=vr*vct_ht_ti[plane]
+		end
+		return v_ht0
+	end
+	--[[Hàm tính vận tốc hướng tâm của chuyển động quay]]
+
+	--[[B1.2c]]
+	local v_c0={0,0}
+	local v_c=function(t)
+		local r_ti=r(t)
+		local vct_tt_ti=vct_tt(t)
+		for plane=1,2 do
+			v_c0[plane]=r_ti*vp*vct_tt_ti[plane]
+		end
+		return v_c0
+	end
+	--[[Hàm tính vận tốc Coriolis của chuyển động quay + xuyên tâm]]
+
+	--[[B2]]
+	--[[Sử dụng vctSum(vctSumSlot,vctComponentList) của lib 1 (từ beta 14.12)]]
+	local a0={0,0}
+	local a=function(t)
+		return vctSum(a0,{a_b(t),a_ht(t),a_c(t)})
+	end
+	--[[Hàm tính gia tốc tổng hợp]]
+	local v0={0,0}
+	local v=function(t)
+		return vctSum(v0,{v_b(t),v_ht(t),v_c(t)})
+	end
+	--[[Hàm tính vận tốc tổng hợp]]
+	local w=function(t)
+		return sqrt( vctLen(a(t)) )*vctLen(v(t))
+	end
+	--[[Hàm tính trọng số]]
+
+	--[[B3]]
+	local w0,w1=w(0),w(1)
+	local general_approx_core=function(t)
+		return 1/(w1-w0)*( ( (w1^0.5 - w0^0.5)*t + w0^0.5 )^2-w0 )
+	end
+	local output={}
+	for i=0,segments do
+		output[i]=( (w1-w0==0 or i==0 or i==segments) and i/segments or general_approx_core(w0,w1,i) )
+	end
+	return output
 end
+
+function moveg0(segments,x0,y0,x1,y1,x2,y2,x3,y3,a0,a1,r0,r1,t0,t1)
+
+
+function moveg1(segments,bezier_data,bezier_offset,sr,sp,t0,t1)
+
+
+
+
 
 
 function bezier_approx(cp0,cp1,cp2,cp3,segments)
