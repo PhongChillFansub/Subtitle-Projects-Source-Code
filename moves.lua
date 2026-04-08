@@ -2,7 +2,7 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo phức tạp (\\moves, \\mover) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 2.07, 8/4/2026]]
+--[[beta 2.08, 8/4/2026]]
 --[[Bổ sung hàm tổng quát và chuyển đổi line - cubic bezier. to-do: hàm xử lí lệnh vẽ -> quỹ đạo?]]
 
 --[[qpi = {x,y} (i:0,1,2)]]
@@ -106,16 +106,19 @@ end
 
 --[[B3: Tính vị trí tối ưu bằng hàm approx (với w0=w(start),w1=w(end), có thể là 0..1 hoặc đoạn bên trong nó)]]
 --[[t_i = 1/(w1-w0)*( ( (w1^0.5 - w0^0.5)*i/N + w0^0.5 )^2-w0 )]]
-function general_approx(cp0,cp1,cp2,cp3,sr,sp,segments)
+function general_approx(segments,cp0,cp1,cp2,cp3,sr,sp,st)
 	--[[Hàm xấp xỉ tổng quát cho chuyển động tổng hợp theo quỹ đạo bezier + xuyên tâm + xoay đồng thời, cùng tuyến tính theo thời gian]]
 	--[[Đầu vào: 4 điểm điều khiển cp<i=0..3>={x,y}, sr={r0,r1},sp={p0,p1}]]
 	--[[sr,sp là "quãng đường" của việc thay đổi bán kính r và pha p]]
 	--[[Đầu ra: dãy segments+1 giá trị t[i] (gồm 2 đầu t[0]=0 và t[segments]=1)]]
 	--[[Thuật toán: GPAI, ở trên]]
-	local sqrt,cos,sin = math.sqrt,math.cos,math.sin
+	local sqrt,cos,sin,unpack = math.sqrt,math.cos,math.sin,_G.table.unpack
 	local vctLen = function(vct)
 		return sqrt(vct[1]^2+vct[2]^2)
 		--[[Hàm tính độ dài vector]]
+	end
+	local ti=function(t)
+		return st[1]+(st[2]-st[1])*t
 	end
 
 	--[[B1.1a]]
@@ -233,14 +236,20 @@ function general_approx(cp0,cp1,cp2,cp3,sr,sp,segments)
 	local general_approx_core=function(t)
 		return 1/(w1-w0)*( ( (w1^0.5 - w0^0.5)*t + w0^0.5 )^2-w0 )
 	end
-	local output={}
+	local output={xi={},yi={},ti={},i={}}
 	for i=0,segments do
-		output[i]=( (w1-w0==0 or i==0 or i==segments) and i/segments or general_approx_core(w0,w1,i) )
+		output.i[i]=( (w1-w0==0 or i==0 or i==segments) and i/segments or general_approx_core(w0,w1,i) )
+		local org1 = pointOnCBezier(cp0,cp1,cp2,cp3,output.i[i])
+		--[[Lưu ý: org là điểm mốc tịnh tiến các tọa độ bezier]]
+		--[[Còn org1 là tâm của phép quay+xuyên tâm (và là 1 điểm trong đường Bezier)]]
+		--[[Sử dụng polar(pos_x,pos_y,radius,angle_deg,precision,output_mode) của lib 1]]
+		output.xi[i],output.yi[i]=unpack(polar(org1[1],org1[2],r(output.i[i]),p(output.i[i]),0,0))
+		output.ti[i]=ti(output.i[i])
 	end
 	return output
 end
 
-function moveg0(segments,bezier_data,org,sr,sp,st)
+function moveg_main(segments,bezier_data,org,sr,sp,st)
 	--[[Hàm xấp xỉ cho chuyển động tổng quát]]
 	--[[Cấu trúc đầu vào:]]
 	--[[ bezier_data: bảng mẹ gồm các cặp tọa độ {x,y}]]
@@ -275,19 +284,30 @@ function moveg0(segments,bezier_data,org,sr,sp,st)
 		cp2[plane]=cp2[plane]+org[plane]
 		cp3[plane]=cp3[plane]+org[plane]
 	end
-	local cnf0 = function(x)
-		return _G.tonumber(_G.string.format('%.0f',x*(t1-t0)))
-	end
 	--[[to-do: sửa đoạn này]]
-	movegd = {xi={},yi={},ti={},i=general_approx(cp0,cp1,cp2,cp3,sr,sp,segments)}
-	for i=0,segments do
-		local pos = pointOnCBezier(cp0,cp1,cp2,cp3,moves3_data.i[i])
-		moves3_data.xi[i],moves3_data.yi[i] = pos[1],pos[2]
-		moves3_data.ti[i]=cnf0(i/segments)
+	movegd = general_approx(segments,cp0,cp1,cp2,cp3,sr,sp,st)
+	return ''
+end
+
+function movegj(j,segments,bezier_data,org,sr,sp,st)
+	if j==1 then 
+		_=moveg_main(segments,bezier_data,org,sr,sp,st)
 	end
+	local output = {
+		moves3_data.xi[j-1],
+		moves3_data.yi[j-1],
+		moves3_data.xi[j],
+		moves3_data.yi[j],
+		0,
+		moves3_data.ti[j]-moves3_data.ti[j-1]
+	}
+	return _G.table.concat(output,',')
+end
 
-function moveg1(segments,x0,y0,x1,y1,x2,y2,x3,y3,a0,a1,r0,r1,t0,t1)
-
+function moveg(j,segments,x0,y0,x1,y1,x2,y2,x3,y3,a0,a1,r0,r1,t0,t1)
+	--[[Hàm "gần với chuẩn đầu vào tag" hơn của hàm movegj()]]
+	
+end
 
 
 
