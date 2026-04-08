@@ -2,7 +2,7 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo phức tạp (\\moves, \\mover) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 2.08, 8/4/2026]]
+--[[beta 2.09, 8/4/2026]]
 --[[Bổ sung hàm tổng quát và chuyển đổi line - cubic bezier. to-do: hàm xử lí lệnh vẽ -> quỹ đạo?]]
 
 --[[qpi = {x,y} (i:0,1,2)]]
@@ -278,13 +278,14 @@ function moveg_main(segments,bezier_data,org,sr,sp,st)
 		--[[Từ 4 tọa độ trở lên (chỉ nhận 4)]]
 		cp0,cp1,cp2,cp3=unpack(bezier_data,1,4)
 	end
-	for plane = 1,2 do
-		cp0[plane]=cp0[plane]+org[plane]
-		cp1[plane]=cp1[plane]+org[plane]
-		cp2[plane]=cp2[plane]+org[plane]
-		cp3[plane]=cp3[plane]+org[plane]
+	if org then
+		for plane = 1,2 do
+			cp0[plane]=cp0[plane]+(org[plane] or 0)
+			cp1[plane]=cp1[plane]+(org[plane] or 0)
+			cp2[plane]=cp2[plane]+(org[plane] or 0)
+			cp3[plane]=cp3[plane]+(org[plane] or 0)
+		end
 	end
-	--[[to-do: sửa đoạn này]]
 	movegd = general_approx(segments,cp0,cp1,cp2,cp3,sr,sp,st)
 	return ''
 end
@@ -306,11 +307,19 @@ end
 
 function moveg(j,segments,x0,y0,x1,y1,x2,y2,x3,y3,a0,a1,r0,r1,t0,t1)
 	--[[Hàm "gần với chuẩn đầu vào tag" hơn của hàm movegj()]]
-	
+	local sr,sp,st={r0,r1},{a0,a1},{t0,t1}
+	local bezier_data={{x0,y0},((x1 and y1) and {x1,y1}),((x2 and y2) and {x2,y2}),((x3 and y3) and {x3,y3})}
+	return movegj(j,segments,bezier_data,nil,sr,sp,st)
 end
 
 
 
+
+
+
+
+
+--[[Phần hàm cũ beta 1]]
 function bezier_approx(cp0,cp1,cp2,cp3,segments)
 	--[[Hàm xấp xỉ dựa trên tích phân mật độ điểm (power-law approx) cho bezier bậc 3]]
 	--[[Đầu ra: dãy segments+1 giá trị ti (gồm 2 đầu t_0=0 và t_segments=1)]]
