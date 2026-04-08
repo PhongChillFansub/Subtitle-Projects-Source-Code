@@ -2,39 +2,38 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo phức tạp (\\moves, \\mover) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 2.06, 8/4/2026]]
+--[[beta 2.07, 8/4/2026]]
 --[[Bổ sung hàm tổng quát và chuyển đổi line - cubic bezier. to-do: hàm xử lí lệnh vẽ -> quỹ đạo?]]
 
 --[[qpi = {x,y} (i:0,1,2)]]
 --[[cpi = {x,y} (i:0,1,2,3)]]
 
---[[Hàm Gemini viết: line2cBezier: chuyển đổi đường thẳng thành đường Bezier bậc 3]]
-function line_to_bezier3(x1, y1, x2, y2)
-    --[[ Bezier bậc 3 cần 4 điểm: P0, P1, P2, P3]]
-    --[[Với đoạn thẳng, ta có thể đặt:]]
-    --[[P1 nằm tại 1/3 đoạn thẳng]]
-    --[[P2 nằm tại 2/3 đoạn thẳng]]
-    
-    local c1x = x1 + (x2 - x1) / 3
-    local c1y = y1 + (y2 - y1) / 3
-    
-    local c2x = x1 + 2 * (x2 - x1) / 3
-    local c2y = y1 + 2 * (y2 - y1) / 3
-    
-    --[[Trả về 4 cặp tọa độ]]
-    return x1, y1, c1x, c1y, c2x, c2y, x2, y2
+function line2cBezier(a,b,org)
+	--[[Hàm chuyển đổi đường thẳng thành Bezier bậc 3]]
+	local org = org or {0,0}
+	local tblcpy = _G.table.copy
+	local cp0, cp1, cp2, cp3 = tblcpy(a), {0,0}, {0,0}, tblcpy(b) 
+	for plane=1,2 do
+		cp0[plane]=string.format('%.0f',cp0[plane]+org[plane])
+		cp1[plane]=string.format('%.0f',cp0[plane]+1/3*(cp3[plane]-cp0[plane])+org[plane])
+		cp2[plane]=string.format('%.0f',cp0[plane]+2/3*(cp3[plane]-cp0[plane])+org[plane])
+		cp3[plane]=string.format('%.0f',cp3[plane]+org[plane])
+	end
+	return cp0,cp1,cp2,cp3 
 end
---[[Hết đoạn Gemini viết]]
 
-function q2cBezier(qp0,qp1,qp2)
+function q2cBezier(qp0,qp1,qp2,org)
 	--[[Hàm biến đổi tọa độ (2d) đường cong Bezier cấp 2 thành cấp 3 (để trực quan bằng lệnh vẽ)]]
 	--[[Thuật toán: cp0=qp0, cp1=cp0+2/3*(qp1-qp0), cp2=qp2+2/3*(qp1-qp2), cp3=qp2]]
 	--[[Cấu trúc các điểm đầu vào và ra: 2d (1: x, 2:y)]]
+	local org = org or {0,0}
 	local tblcpy = _G.table.copy
 	local cp0, cp1, cp2, cp3 = tblcpy(qp0), {0,0}, {0,0}, tblcpy(qp2)
 	for plane=1,2 do
-		cp1[plane]=string.format('%.0f',qp0[plane]+2/3*(qp1[plane]-qp0[plane]))
-		cp2[plane]=string.format('%.0f',qp2[plane]+2/3*(qp1[plane]-qp2[plane]))
+		cp0[plane]=string.format('%.0f',cp0[plane]+org[plane])
+		cp1[plane]=string.format('%.0f',qp0[plane]+2/3*(qp1[plane]-qp0[plane])+org[plane])
+		cp2[plane]=string.format('%.0f',qp2[plane]+2/3*(qp1[plane]-qp2[plane])+org[plane])
+		cp3[plane]=string.format('%.0f',cp3[plane]+org[plane])
 	end
 	return cp0,cp1,cp2,cp3 
 end
@@ -241,12 +240,53 @@ function general_approx(cp0,cp1,cp2,cp3,sr,sp,segments)
 	return output
 end
 
-function moveg0(segments,x0,y0,x1,y1,x2,y2,x3,y3,a0,a1,r0,r1,t0,t1)
+function moveg0(segments,bezier_data,org,sr,sp,st)
+	--[[Hàm xấp xỉ cho chuyển động tổng quát]]
+	--[[Cấu trúc đầu vào:]]
+	--[[ bezier_data: bảng mẹ gồm các cặp tọa độ {x,y}]]
+	--[[ org: tọa độ gốc {x,y}]]
+	--[[ sr: "quãng đường" chuyển động xuyên tâm (thay đổi bán kính): {r0,r1}]]
+	--[[ sp: "quãng đường" chuyển động quay (thay đổi pha): {p0,p1}]]
+	--[[ st: "quãng đường" thay đổi thời gian (các thời điểm): {t0,t1}]]
 
+	local tblcpy,unpack=_G.table.copy,_G.table.unpack
+	local poscount=#bezier_data
+	local cp0,cp1,cp2,cp3={0,0},{0,0},{0,0},{0,0}
+	--[[Số tọa độ trong bảng bezier_data quyết định cơ chế chuyển đổi]]
+	if poscount == 0 then
+		--[[Không có dữ liệu, coi như chỉ có 1 tọa độ là org (dạng \pos(org) hoặc \move(org,org).)]]
+		--[[Cộng để sau]]
+	elseif poscount == 1 then
+		--[[Chỉ có 1 tọa độ là tblcpy(bezier_data[1]).]] 
+		cp0,cp1,cp2,cp3=tblcpy(bezier_data[1]),tblcpy(bezier_data[1]),tblcpy(bezier_data[1]),tblcpy(bezier_data[1])
+	elseif poscount == 2 then
+		--[[2 tọa độ (sử dụng l2cBezier)]]
+		cp0,cp1,cp2,cp3=line2cBezier(bezier_data[1],bezier_data[2])
+	elseif poscount == 3 then
+		--[[3 tọa độ (sử dụng q3cBezier)]]
+		cp0,cp1,cp2,cp3=q2cBezier(bezier_data[1],bezier_data[2],bezier_data[3])
+	else
+		--[[Từ 4 tọa độ trở lên (chỉ nhận 4)]]
+		cp0,cp1,cp2,cp3=unpack(bezier_data,1,4)
+	end
+	for plane = 1,2 do
+		cp0[plane]=cp0[plane]+org[plane]
+		cp1[plane]=cp1[plane]+org[plane]
+		cp2[plane]=cp2[plane]+org[plane]
+		cp3[plane]=cp3[plane]+org[plane]
+	end
+	local cnf0 = function(x)
+		return _G.tonumber(_G.string.format('%.0f',x*(t1-t0)))
+	end
+	--[[to-do: sửa đoạn này]]
+	movegd = {xi={},yi={},ti={},i=general_approx(cp0,cp1,cp2,cp3,sr,sp,segments)}
+	for i=0,segments do
+		local pos = pointOnCBezier(cp0,cp1,cp2,cp3,moves3_data.i[i])
+		moves3_data.xi[i],moves3_data.yi[i] = pos[1],pos[2]
+		moves3_data.ti[i]=cnf0(i/segments)
+	end
 
-function moveg1(segments,bezier_data,bezier_offset,sr,sp,t0,t1)
-
-
+function moveg1(segments,x0,y0,x1,y1,x2,y2,x3,y3,a0,a1,r0,r1,t0,t1)
 
 
 
