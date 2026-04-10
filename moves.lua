@@ -2,7 +2,7 @@ script_name = "[Level 2] moves"
 script_description = "[Phòng Chill Fansub] Effect di chuyển quỹ đạo phức tạp (\\moves, \\mover) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 2.09, 8/4/2026]]
+--[[beta 2.10, 10/4/2026]]
 --[[Bổ sung hàm tổng quát và chuyển đổi line - cubic bezier. to-do: hàm xử lí lệnh vẽ -> quỹ đạo?]]
 
 --[[qpi = {x,y} (i:0,1,2)]]
@@ -106,13 +106,17 @@ end
 
 --[[B3: Tính vị trí tối ưu bằng hàm approx (với w0=w(start),w1=w(end), có thể là 0..1 hoặc đoạn bên trong nó)]]
 --[[t_i = 1/(w1-w0)*( ( (w1^0.5 - w0^0.5)*i/N + w0^0.5 )^2-w0 )]]
-function general_approx(segments,cp0,cp1,cp2,cp3,sr,sp,st)
+function general_approx(segments,cp0,cp1,cp2,cp3,sr,sp,st,si)
 	--[[Hàm xấp xỉ tổng quát cho chuyển động tổng hợp theo quỹ đạo bezier + xuyên tâm + xoay đồng thời, cùng tuyến tính theo thời gian]]
-	--[[Đầu vào: 4 điểm điều khiển cp<i=0..3>={x,y}, sr={r0,r1},sp={p0,p1}]]
+	--[[Đầu vào: 4 điểm điều khiển cp<i=0..3>={x,y}, sr={r0,r1},sp={p0,p1},si={i0,i1}]]
 	--[[sr,sp là "quãng đường" của việc thay đổi bán kính r và pha p]]
+	--[[si: đoạn tùy chỉnh (mặc định: 0..1) không nằm ngoài 0..1: đoạn nhỏ xét đến của đường Bezier]]
 	--[[Đầu ra: dãy segments+1 giá trị t[i] (gồm 2 đầu t[0]=0 và t[segments]=1)]]
 	--[[Thuật toán: GPAI, ở trên]]
-	local sqrt,cos,sin,unpack = math.sqrt,math.cos,math.sin,_G.table.unpack
+	local sqrt,cos,sin,itpl,unpack = math.sqrt,math.cos,math.sin,_G.interpolate,_G.table.unpack
+	local si=si or {0,1}
+	local sr=sr or {0,0}
+	local sp=sp or {0,0}
 	local vctLen = function(vct)
 		return sqrt(vct[1]^2+vct[2]^2)
 		--[[Hàm tính độ dài vector]]
@@ -232,13 +236,13 @@ function general_approx(segments,cp0,cp1,cp2,cp3,sr,sp,st)
 	--[[Hàm tính trọng số]]
 
 	--[[B3]]
-	local w0,w1=w(0),w(1)
+	local w0,w1=w(si[1]),w(si[2])
 	local general_approx_core=function(t)
 		return 1/(w1-w0)*( ( (w1^0.5 - w0^0.5)*t + w0^0.5 )^2-w0 )
 	end
 	local output={xi={},yi={},ti={},i={}}
 	for i=0,segments do
-		output.i[i]=( (w1-w0==0 or i==0 or i==segments) and i/segments or general_approx_core(w0,w1,i) )
+		output.i[i]=( (w1-w0==0 or i==0 or i==segments) and itpl(i/segments,si[1],si[2]) or general_approx_core(w0,w1,i) )
 		local org1 = pointOnCBezier(cp0,cp1,cp2,cp3,output.i[i])
 		--[[Lưu ý: org là điểm mốc tịnh tiến các tọa độ bezier]]
 		--[[Còn org1 là tâm của phép quay+xuyên tâm (và là 1 điểm trong đường Bezier)]]
@@ -249,7 +253,7 @@ function general_approx(segments,cp0,cp1,cp2,cp3,sr,sp,st)
 	return output
 end
 
-function moveg_main(segments,bezier_data,org,sr,sp,st)
+function moveg_main(segments,bezier_data,org,sr,sp,st,si)
 	--[[Hàm xấp xỉ cho chuyển động tổng quát]]
 	--[[Cấu trúc đầu vào:]]
 	--[[ bezier_data: bảng mẹ gồm các cặp tọa độ {x,y}]]
@@ -286,35 +290,64 @@ function moveg_main(segments,bezier_data,org,sr,sp,st)
 			cp3[plane]=cp3[plane]+(org[plane] or 0)
 		end
 	end
-	movegd = general_approx(segments,cp0,cp1,cp2,cp3,sr,sp,st)
+	movegd = general_approx(segments,cp0,cp1,cp2,cp3,sr,sp,st,si)
 	return ''
 end
 
-function movegj(j,segments,bezier_data,org,sr,sp,st)
+function movegj(j,segments,bezier_data,org,sr,sp,st,si)
 	if j==1 then 
-		_=moveg_main(segments,bezier_data,org,sr,sp,st)
+		_=moveg_main(segments,bezier_data,org,sr,sp,st,si)
 	end
 	local output = {
-		moves3_data.xi[j-1],
-		moves3_data.yi[j-1],
-		moves3_data.xi[j],
-		moves3_data.yi[j],
+		movegd.xi[j-1],
+		movegd.yi[j-1],
+		movegd.xi[j],
+		movegd.yi[j],
 		0,
-		moves3_data.ti[j]-moves3_data.ti[j-1]
+		movegd.ti[j]-movegd.ti[j-1]
 	}
 	return _G.table.concat(output,',')
 end
 
-function moveg(j,segments,x0,y0,x1,y1,x2,y2,x3,y3,a0,a1,r0,r1,t0,t1)
+function moveg(j,segments,x0,y0,x1,y1,x2,y2,x3,y3,a0,a1,r0,r1,t0,t1,i0,i1)
 	--[[Hàm "gần với chuẩn đầu vào tag" hơn của hàm movegj()]]
-	local sr,sp,st={r0,r1},{a0,a1},{t0,t1}
+	local sr,sp,st,si=((r0 and r1) and {r0,r1}),((a0 and a1) and {a0,a1}),{t0,t1},((i0 and i1) and {i0,i1})
 	local bezier_data={{x0,y0},((x1 and y1) and {x1,y1}),((x2 and y2) and {x2,y2}),((x3 and y3) and {x3,y3})}
-	return movegj(j,segments,bezier_data,nil,sr,sp,st)
+	return movegj(j,segments,bezier_data,nil,sr,sp,st,si)
 end
 
+function moves3j(j,segments,bezier_data,org,st,si)
+	--[[Hàm moves3, sử dụng hàm tổng quát, dạng gọn hơn]]
+	--[[ bezier_data: bảng mẹ gồm các cặp tọa độ {x,y}]]
+	return movegj(j,segments,bezier_data,org,nil,nil,st,si)
+end
 
+function moves3(j,segments,x0,y0,x1,y1,x2,y2,t0,t1,i0,i1)
+	--[[Hàm moves3, sử dụng hàm tổng quát, dạng "gần với chuẩn đầu vào tag" hơn]]
+	return moveg(j,segments,x0,y0,x1,y1,x2,y2,nil,nil,nil,nil,nil,nil,t0,t1,i0,i1)
+end
 
+function moves4j(j,segments,bezier_data,org,st,si)
+	--[[Hàm moves4, sử dụng hàm tổng quát, dạng gọn hơn]]
+	--[[ bezier_data: bảng mẹ gồm các cặp tọa độ {x,y}]]
+	return movegj(j,segments,bezier_data,org,nil,nil,st,si)
+end
 
+function moves4(j,segments,x0,y0,x1,y1,x2,y2,x3,y3,t0,t1,i0,i1)
+	--[[Hàm moves3, sử dụng hàm tổng quát, dạng "gần với chuẩn đầu vào tag" hơn]]
+	return moveg(j,segments,x0,y0,x1,y1,x2,y2,x3,y3,nil,nil,nil,nil,t0,t1,i0,i1)
+end
+
+function moverj(j,segments,move_data,org,sr,sp,st,si)
+	--[[Hàm mover, sử dụng hàm tổng quát, dạng gọn hơn]]
+	--[[ bezier_data: bảng mẹ gồm các cặp tọa độ {x,y}]]
+	return movegj(j,segments,move_data,org,nil,nil,st,si)
+end
+
+function mover(j,segments,x0,y0,x1,y1,a0,a1,r0,r1,t0,t1,i0,i1)
+	--[[Hàm mover, sử dụng hàm tổng quát, dạng "gần với chuẩn đầu vào tag" hơn]]
+	return moveg(j,segments,x0,y0,x1,y1,nil,nil,nil,nil,a0,a1,r0,r1,t0,t1,i0,i1)
+end
 
 
 
@@ -368,7 +401,7 @@ function bezier_approx(cp0,cp1,cp2,cp3,segments)
 	return output
 end
 
-function moves3(segments,x1,y1,x2,y2,x3,y3,t0,t1)
+function old_moves3(segments,x1,y1,x2,y2,x3,y3,t0,t1)
 	--[[Hàm xấp xỉ tag \moves3 (di chuyển theo đường cong Bezier bậc 2, tuyến tính thời gian)]]
 	--[[Đầu vào: segments: số đoạn xấp xỉ]]
 	local qp0,qp1,qp2 = {x1,y1}, {x2,y2}, {x3,y3}
@@ -386,7 +419,7 @@ function moves3(segments,x1,y1,x2,y2,x3,y3,t0,t1)
 	return ''
 end
 
-function moves3j(j)
+function old_moves3j(j)
 	--[[Hàm đầu ra cho tag \move tại các entity chia bởi lệnh maxloop(moves3())]]
 	--[[Đầu ra output: "x1,y1,x2,y2,t1,t2" (\move(output))]]
 	local output = {
@@ -400,7 +433,7 @@ function moves3j(j)
 	return _G.table.concat(output,',')
 end
 
-function moves3f(segments,bezier_data,offset,t0,t1)
+function old_moves3f(segments,bezier_data,offset,t0,t1)
 	--[[Hàm rút gọn? của moves3()]]
 	--[[Đầu vào: đường bezier {{x1,y1},{x2,y2},{x3,y3}}, hoặc {x1,y1,x2,y2,x3,y3} (phân biệt bằng #bezier_data)]]
 	--[[offset: tọa độ mốc (vd: $scenter,$smiddle)]]
@@ -422,7 +455,7 @@ function moves3f(segments,bezier_data,offset,t0,t1)
 	return moves3(segments,output[1],output[2],output[3],output[4],output[5],output[6],t0,t1)
 end
 
-function moves4(segments,x1,y1,x2,y2,x3,y3,x4,y4,t0,t1)
+function old_moves4(segments,x1,y1,x2,y2,x3,y3,x4,y4,t0,t1)
 	--[[Hàm xấp xỉ tag \moves4 (di chuyển theo đường cong Bezier bậc 3, tuyến tính thời gian)]]
 	--[[Đầu vào: segments: số đoạn xấp xỉ]]
 	local cnf0 = function(x)
@@ -437,7 +470,7 @@ function moves4(segments,x1,y1,x2,y2,x3,y3,x4,y4,t0,t1)
 		moves4_data.ti[i]=cnf0(i/segments)
 	end
 
-function moves4j(j)
+function old_moves4j(j)
 	--[[Hàm đầu ra cho tag \move tại các entity chia bởi lệnh maxloop(segments)]]
 	--[[Đầu ra output: "x1,y1,x2,y2,t1,t2" (\move(output))]]
 	local output = {
@@ -451,7 +484,7 @@ function moves4j(j)
 	return _G.table.concat(output,',')
 end
 
-function moves4f(segments,bezier_data,offset,t0,t1)
+function old_moves4f(segments,bezier_data,offset,t0,t1)
 	--[[Hàm rút gọn của moves4()]]
 	--[[Đầu vào: đường bezier {{x1,y1},{x2,y2},{x3,y3},{x4,y4}}, hoặc {x1,y1,x2,y2,x3,y3,x4,y4} (phân biệt bằng #bezier_data)]]
 	--[[offset: tọa độ mốc (vd: $scenter,$smiddle)]]
