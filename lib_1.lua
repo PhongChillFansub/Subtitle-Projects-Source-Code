@@ -2,8 +2,7 @@ script_name = "[Level 1] Lib"
 script_description = "[Phòng Chill Fansub] Thư viện hàm áp dụng cho hiệu ứng Aegisub."
 script_author = "Phòng Chill Fansub"
 script_version = "1.0"
---[[beta 14.12 8/4/2026]]
---[[Thêm hàm vctSum(vctSumSlot,vctComponentList) cho moves]]
+--[[beta 14.13 12/4/2026. Sửa lỗi hàm polar()]]
 
 function cmt()
   return ''
@@ -113,8 +112,8 @@ end
 
 function polar(pos_x,pos_y,radius,angle_deg,precision,output_mode)
   local output, cos, sin, angle_rad = {0,0}, math.cos, math.sin, math.rad(angle_deg)
-  output[1]= cnfv4(pos_x+radius*cos(angle_rad)),precision)
-  output[2]= cnfv4(pos_y+radius*sin(angle_rad)),precision)
+  output[1]= cnfv4(pos_x+radius*cos(angle_rad),precision)
+  output[2]= cnfv4(pos_y+radius*sin(angle_rad),precision)
   return (output_mode==nil and table2draw(output,',') or (output[output_mode] or output))
 end
 --[[polar(): polarPos() ở bản cũ.]]
