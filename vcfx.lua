@@ -2,8 +2,9 @@ script_name = "[Level 2] vcfx"
 script_description = "[Phòng Chill Fansub] Effect màu vector (vector color, \\vc) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
---[[v2.0 alpha 0.20, 20/3/2026]]
+--[[v2.0 alpha 0.21, 12/4/2026]]
 --[[Cập nhật vcfx v2.0: cho phép áp dụng nhiều bảng màu 2x2 trong 1 mục tiêu.]]
+--[[Sử dụng independentCounter của lib 1]]
 
 function vcFallback(vc_input) 
     --[[Hàm làm đầy dữ liệu màu vector trong trường hợp đầu vào (vc_input) không đủ số lượng màu]]
@@ -15,14 +16,14 @@ function vcFallback(vc_input)
     for i=1,4 do
         --[[Tiến hành kiểm tra]]
         if vc_input[i] ~= '' then 
-            check_result[1] == check_result[1]+10^(4-i)
+            check_result[1] = check_result[1]+10^(4-i)
             --[[i=1: Kết quả kiểm tra (1 nếu có, 0 nếu trống)]]
-            check_result[2] == check_result[2]+1
+            check_result[2] = check_result[2]+1
             --[[i=2: Số lượng màu được cấp trong bảng đầu vào]]
-            check_result[3] == i
+            check_result[3] = i
             --[[i=3: Màu cuối cùng không trống]]
         else
-            check_result[4] == i
+            check_result[4] = i
             --[[i=4: Màu cuối cùng trống]]
         end
     end
@@ -215,6 +216,7 @@ function vcfxV2_MainMerge(vcfx_basesize,vcfx_data)
     --[[Đặt các dữ liệu số lượng, key thuộc tính entity]]
     _G.aegisub.log(3,vcfxV2_MergeGen(vcV2_entity_count,vcV2_entity_key,vcfx_data.range))
     return #vcV2_merged
+end
 
 function vctClipS(line_data,entity_data,offset_input)
     --[[Hàm tính toán clip cho các entity của vcfxV2_MainMerge]]
@@ -234,6 +236,7 @@ function vctClipS(line_data,entity_data,offset_input)
         output[i]=cnfv4(output[i])
     end
     return _G.table.concat(output,',')
+end
 
 function vctColorS(vcfx_color,newrange)
     --[[Hàm thu nhỏ không gian màu theo 2 chiều (từ 0..1 đến x..y trong khoảng 0..1)]]
