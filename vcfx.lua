@@ -2,20 +2,20 @@ script_name = "[Level 2] vcfx"
 script_description = "[Phòng Chill Fansub] Effect màu vector (vector color, \\vc) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
---[[v2.0 alpha 0.21, 12/4/2026]]
+--[[v2.0 alpha 0.22, 12/4/2026]]
 --[[Cập nhật vcfx v2.0: cho phép áp dụng nhiều bảng màu 2x2 trong 1 mục tiêu.]]
---[[Sử dụng independentCounter của lib 1]]
+--[[Sử dụng independentCounter, interpolate_color_2d của lib 1]]
 
 function vcFallback(vc_input) 
     --[[Hàm làm đầy dữ liệu màu vector trong trường hợp đầu vào (vc_input) không đủ số lượng màu]]
     --[[Cấu trúc đầu vào bảng màu đơn vc_input[i]: i: stt màu (1-4) theo tag \an (7,9,1,3), tương tự \vc]] 
     --[[Cấu trúc đầu ra vc_input[i] đã điền đủ hợp lệ]] 
-    --[[Phần làm đầy dữ liệu. Kiểu dữ liệu "trống" hợp lệ: ''. vd: {'','','',''}]] 
+    --[[Phần làm đầy dữ liệu. Kiểu dữ liệu "trống" hợp lệ: '', nil. vd: {'','','',''}]] 
     local check_result = {0,0,0,0}
     --[[Cấu trúc kết quả kiểm tra check_result: i: theo màu]]
     for i=1,4 do
         --[[Tiến hành kiểm tra]]
-        if vc_input[i] ~= '' then 
+        if (vc_input[i] or '') ~= '' then 
             check_result[1] = check_result[1]+10^(4-i)
             --[[i=1: Kết quả kiểm tra (1 nếu có, 0 nếu trống)]]
             check_result[2] = check_result[2]+1
@@ -33,23 +33,23 @@ function vcFallback(vc_input)
         for i=1,4 do
             vc_input[i] = vc_input[check_result[3]]
         end
-    elseif check_result[2] == 1100 then
+    elseif check_result[1] == 1100 then
         --[[TH2a: có 2 màu an7 và an9 (màu vector 1 chiều: ngang). Xử lí an1=an7, an3=an9]]
         vc_input[3] = vc_input[1]
         vc_input[4] = vc_input[2]
-    elseif check_result[2] == 1010 then 
+    elseif check_result[1] == 1010 then 
         --[[TH2b: có 2 màu an7 và an1 (màu vector 1 chiều: dọc). Xử lí an9=an7, an3=an1]] 
         vc_input[2] = vc_input[1]
         vc_input[4] = vc_input[3]
-    elseif check_result[2] == 1001 then 
+    elseif check_result[1] == 1001 then 
         --[[TH2c: có 2 màu an7 và an3 (vector chiều chéo xuống/dấu huyền). Xử lí an9=an1=trung bình 2 màu kia]] 
         vc_input[2] = _G.interpolate_color(0.5,vc_input[1],vc_input[4]) 
         vc_input[3] = vc_input[2] 
-    elseif checkResult[1] == 110 then 
+    elseif check_result[1] == 110 then 
         --[[TH2d: có 2 màu an9 và an1 (vector chiều chéo lên/dấu sắc). Xử lí an7=an3=trung bình 2 màu kia--]] 
         vc_input[1] = _G.interpolate_color(0.5,vc_input[2],vc_input[3]); 
         vc_input[4] = vc_input[1]
-    elseif checkResult[2] == 3 then 
+    elseif check_result[2] == 3 then 
         --[[TH3: có 3 màu. màu còn thiếu bằng màu ở góc đối diện--]] 
         local opposite = (check_result[4]+1)%4+1
         --[[Màu đối diện (bộ 4) = stt+2 (nếu lớn hơn 4 thì trừ đi 4, ở đây là mod 4). Đưa +1 ra sau do stt đếm từ 1 (mod từ 0)]] 
@@ -92,6 +92,7 @@ function vcfxV2_ExtractColor(vcfx_color)
 end
 
 function vcfxV2_Generate(vcfxV2_lod, vcfx_color)
+    local new_line=string.char(10)
     --[[Hàm tạo dữ liệu đầu ra vcV2]]
     --[[Cấu trúc đầu vào V2_lod: {1: x, 2: y}]]
     --[[Cấu trúc đầu vào _color: {Nx{4x<color>}}, tức N bảng màu 2x2]]
@@ -107,10 +108,11 @@ function vcfxV2_Generate(vcfxV2_lod, vcfx_color)
         vcV2[#vcV2].yc[i]=(i-1)/(vcfxV2_lod[2]-1)
     end
     vcV2_key = #vcV2
-    return string.format('[vcfxV2_Gen] Đã tạo mới vùng %d phân giải %dx%d\n',vcV2_key,_G.table.unpack(vcfxV2_lod))
+    return string.format('[vcfxV2_Gen] Đã tạo mới vùng %d phân giải %dx%d%s',vcV2_key,vcfxV2_lod[1],vcfxV2_lod[2],new_line)
 end
 
 function vcfxV2_Base(vcfx_size, vcfx_color, vcfx_range) 
+    local new_line=string.char(10)
     --[[Cấu trúc bảng đầu vào vcfx_size: {1: x, 2: y}, kích thước vùng chia.]]
     --[[Cấu trúc bảng đầu vào vcfx_color: gồm nhiều bảng màu đơn {4x<color>}.]]
     --[[Cấu trúc bảng đầu vào vcfx_range: {1: left, 2: top, 3: right, 4: bottom, tất cả đều là 0..1}]]
@@ -119,31 +121,34 @@ function vcfxV2_Base(vcfx_size, vcfx_color, vcfx_range)
     --[[Hằng số độ phân giải (đơn vị: px) là kích thước ô phân giải với chênh lệch màu 256 đơn vị.]]
     --[[Nó tỉ lệ thuận với kích thước vùng áp dụng màu vector, chênh lệch màu,]]
     --[[tỉ lệ nghịch với độ phân giải cơ sở (độ chia  màu cho chênh lệch 256 đơn vị)]]
-    vcfxV2_lod_const = vcfxV2_lod_const or 2
+    vcfxV2_lod_const = vcfxV2_lod_const or 8
     --[[Hằng số độ phân giải mặc định là 2 pixel/ô phân giải]]
-    local vcfxV2_color_diff = vcfxV2_ExtractColor(vcfx_color)
-    local vcfxV2_lod = _G.table.copy(vcfxV2_color_diff)
+    vcfxV2_color_diff = vcfxV2_ExtractColor(vcfx_color)
+    vcfxV2_lod = _G.table.copy(vcfxV2_color_diff)
     --[[Tạm đặt vcfxV2_lod = vcfxV2_color_diff (_lod hiện là chênh lệch màu)]]
     for i=1,#vcfxV2_lod do
-        vcfxV2_lod[i] = math.ceil( vcfx_size[i]*(vcfx_range[2+i]-vcfx_range[i])/vcfxV2_lod_const * vcfxV2_lod[i]/256 )
+        vcfxV2_lod[i] = math.max(1,math.ceil( vcfx_size[i]*(vcfx_range[2+i]-vcfx_range[i])/vcfxV2_lod_const * vcfxV2_lod[i]/256 ))
         --[[v1: số lượng ô phân giải = chênh lệch màu/(256/đpg cơ sở thủ công) = đpg cơ sở thủ công*chênh lệch màu/256]]
         --[[v2: số lượng ô phân giải = kích thước vùng chia/h.số đpg * chênh lệch màu/256]]
         --[[v2: vcfxV2_lod = vcfx_size/vcfxV2_lod_const * vcfxV2_color_diff/256 ]] 
     end
     --[[Phần memoization]]
-    for check_index=1,#vcV2 do
+    local memo_check=0
+    for check_index=1,(vcV2 and #vcV2 or 0) do
         if #vcV2[check_index].xc==vcfxV2_lod[1] and #vcV2[check_index].yc==vcfxV2_lod[2] then 
             vcV2_key = check_index
-            _G.aegisub.log(3,'[vcfxV2_Base] Dùng lại vùng %d phân giải %dx%d\n',vcV2_key,vcfxV2_lod[1],vcfxV2_lod[2])
+            memo_check=1
+            _G.aegisub.log(3,'[vcfxV2_Base] Dùng lại vùng %d phân giải %dx%d%s',vcV2_key,vcfxV2_lod[1],vcfxV2_lod[2],new_line)
             break
         end
     end
     --[[Khởi tạo kết quả đầu ra]]
-    _G.aegisub.log(3,vcfxV2_Generate(vcfxV2_lod, vcfx_color))
+    if memo_check==0 then _G.aegisub.log(3,vcfxV2_Generate(vcfxV2_lod, vcfx_color)) end
     return vcfxV2_lod[1]*vcfxV2_lod[2]
 end
 
 function vcfxV2_MergeGen(vcV2_entity_count,vcV2_entity_key,vcV2_entity_range)
+    local new_line=string.char(10)
     --[[Hàm tạo bảng cho vcfxV2_MainMerge]]
     --[[Cấu trúc bảng đầu vào _entity_count[key]: key: area_index, value: số entity của mỗi vùng]]
     --[[Cấu trúc bảng đầu vào _entity_key[key]: area_index, value: chi tiết thuộc tính vùng (vcV2[key])]]
@@ -199,7 +204,7 @@ function vcfxV2_MergeGen(vcV2_entity_count,vcV2_entity_key,vcV2_entity_range)
         local tblcpy = _G.table.copy
         vcV2_merged[entity_index]=tblcpy(vcV2_mergeunit)
     end
-    return string.format('[vcfxV2_Merge] Hoàn tất hợp nhất %d ô phân giải cho line %d\n',#vcV2_merged,line.i)
+    return string.format('[vcfxV2_Merge] Hoàn tất hợp nhất %d ô phân giải cho line %d%s',#vcV2_merged,line.i,new_line)
 end
     
 
