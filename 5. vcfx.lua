@@ -1,8 +1,8 @@
 script_name = "[Level 2] vcfx"
 script_description = "[Phòng Chill Fansub] Effect màu vector (vector color, \\vc) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
-script_version = "2.0"
---[[v2.0 alpha 0.22, 12/4/2026]]
+script_version = "alpha 2.0.0.22"
+--[[fm5 a2.0.0.22 12apr26]]
 --[[Cập nhật vcfx v2.0: cho phép áp dụng nhiều bảng màu 2x2 trong 1 mục tiêu.]]
 --[[Sử dụng independentCounter, interpolate_color_2d của lib 1]]
 
