@@ -1,8 +1,8 @@
 script_name = "[Level 2] vcfx"
 script_description = "[Phòng Chill Fansub] Effect màu vector (vector color, \\vc) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
-script_version = "alpha 2.0.0.22"
---[[fm5 a2.0.0.22 12apr26]]
+script_version = "beta 2.0.1.0"
+--[[fm5 b2.0.1.0 12apr26]]
 --[[Cập nhật vcfx v2.0: cho phép áp dụng nhiều bảng màu 2x2 trong 1 mục tiêu.]]
 --[[Sử dụng independentCounter, interpolate_color_2d của lib 1]]
 
@@ -92,27 +92,26 @@ function vcfxV2_ExtractColor(vcfx_color)
 end
 
 function vcfxV2_Generate(vcfxV2_lod, vcfx_color)
-    local new_line=string.char(10)
     --[[Hàm tạo dữ liệu đầu ra vcV2]]
     --[[Cấu trúc đầu vào V2_lod: {1: x, 2: y}]]
     --[[Cấu trúc đầu vào _color: {Nx{4x<color>}}, tức N bảng màu 2x2]]
     --[[Cấu trúc đầu vào _pos: {1: left, 2: top, 3: right, 4: bottom}, trong khoảng 0..1]]
+    local new_line=string.char(10)
     if vcV2 == nil then vcV2 = {} end
     --[[Khởi tạo không gian đầu ra (nếu trước đó không có)]]
     vcV2[#vcV2+1] = {color=vcfx_color, xc={}, yc={}}
     --[[Cấu trúc bảng vcV2[key] = {.xc, .yc (0..1); .color=vcfx_color {Nx{4x<color>}} }]]
     for i=1,vcfxV2_lod[1] do
-        vcV2[#vcV2].xc[i]=(i-1)/(vcfxV2_lod[1]-1)
+        vcV2[#vcV2].xc[i]=(i-1)/(math.max(1,vcfxV2_lod[1]-1))
     end
     for i=1,vcfxV2_lod[2] do
-        vcV2[#vcV2].yc[i]=(i-1)/(vcfxV2_lod[2]-1)
+        vcV2[#vcV2].yc[i]=(i-1)/(math.max(1,vcfxV2_lod[2]-1))
     end
     vcV2_key = #vcV2
     return string.format('[vcfxV2_Gen] Đã tạo mới vùng %d phân giải %dx%d%s',vcV2_key,vcfxV2_lod[1],vcfxV2_lod[2],new_line)
 end
 
 function vcfxV2_Base(vcfx_size, vcfx_color, vcfx_range) 
-    local new_line=string.char(10)
     --[[Cấu trúc bảng đầu vào vcfx_size: {1: x, 2: y}, kích thước vùng chia.]]
     --[[Cấu trúc bảng đầu vào vcfx_color: gồm nhiều bảng màu đơn {4x<color>}.]]
     --[[Cấu trúc bảng đầu vào vcfx_range: {1: left, 2: top, 3: right, 4: bottom, tất cả đều là 0..1}]]
@@ -126,6 +125,7 @@ function vcfxV2_Base(vcfx_size, vcfx_color, vcfx_range)
     vcfxV2_color_diff = vcfxV2_ExtractColor(vcfx_color)
     vcfxV2_lod = _G.table.copy(vcfxV2_color_diff)
     --[[Tạm đặt vcfxV2_lod = vcfxV2_color_diff (_lod hiện là chênh lệch màu)]]
+    local new_line=string.char(10)
     for i=1,#vcfxV2_lod do
         vcfxV2_lod[i] = math.max(1,math.ceil( vcfx_size[i]*(vcfx_range[2+i]-vcfx_range[i])/vcfxV2_lod_const * vcfxV2_lod[i]/256 ))
         --[[v1: số lượng ô phân giải = chênh lệch màu/(256/đpg cơ sở thủ công) = đpg cơ sở thủ công*chênh lệch màu/256]]
@@ -148,12 +148,12 @@ function vcfxV2_Base(vcfx_size, vcfx_color, vcfx_range)
 end
 
 function vcfxV2_MergeGen(vcV2_entity_count,vcV2_entity_key,vcV2_entity_range)
-    local new_line=string.char(10)
     --[[Hàm tạo bảng cho vcfxV2_MainMerge]]
     --[[Cấu trúc bảng đầu vào _entity_count[key]: key: area_index, value: số entity của mỗi vùng]]
     --[[Cấu trúc bảng đầu vào _entity_key[key]: area_index, value: chi tiết thuộc tính vùng (vcV2[key])]]
     --[[Cấu trúc bảng đầu vào _entity_range[key]: {left,top,right,bottom}]]
-    --[[Đầu ra: vcV2_merged={entity_index -> {area_key,x0,y0,x1,y1,xc,yc,index,ix,iy} }]]
+    --[[Đầu ra: vcV2_merged={entity_index -> {area_key,color,index,ix,iy,xc,yc,x0,y0,x1,y1} }]]
+    local new_line=string.char(10)
     vcV2_merged = {} 
     local entity_checkpoint,max,unpack = {0},_G.math.max,_G.table.unpack
     for i=1,#vcV2_entity_count do 
@@ -193,10 +193,10 @@ function vcfxV2_MergeGen(vcV2_entity_count,vcV2_entity_key,vcV2_entity_range)
         vcV2_mergeunit.xc=vcV2_data.xc[vcV2_mergeunit.ix]
         vcV2_mergeunit.yc=vcV2_data.yc[vcV2_mergeunit.iy]
         --[[Tính vị trí clip]]
-        local itpl = function(x) return _G.interpolate(x,vcV2_range4unit[1],vcV2_range4unit[3]) end
+        local itpl = function(x) return _G.interpolate(x/#vcV2_data.xc,vcV2_range4unit[1],vcV2_range4unit[3]) end
         vcV2_mergeunit.x0 = itpl(vcV2_mergeunit.ix-1)
         vcV2_mergeunit.x1 = itpl(vcV2_mergeunit.ix)
-        local itpl = function(y) return _G.interpolate(y,vcV2_range4unit[2],vcV2_range4unit[4]) end
+        local itpl = function(y) return _G.interpolate(y/#vcV2_data.yc,vcV2_range4unit[2],vcV2_range4unit[4]) end
         vcV2_mergeunit.y0 = itpl(vcV2_mergeunit.iy-1)
         vcV2_mergeunit.y1 = itpl(vcV2_mergeunit.iy)  
         
@@ -204,18 +204,20 @@ function vcfxV2_MergeGen(vcV2_entity_count,vcV2_entity_key,vcV2_entity_range)
         local tblcpy = _G.table.copy
         vcV2_merged[entity_index]=tblcpy(vcV2_mergeunit)
     end
-    return string.format('[vcfxV2_Merge] Hoàn tất hợp nhất %d ô phân giải cho line %d%s',#vcV2_merged,line.i,new_line)
+    msg='[vcfxV2_Merge] Hoàn tất hợp nhất %d ô phân giải cho line %d%s(%s: %s)%s%s'
+    return string.format(msg,#vcV2_merged,line.i,new_line,line.styleref.name,line.text_stripped,new_line,new_line)
 end
-    
 
 function vcfxV2_MainMerge(vcfx_basesize,vcfx_data)
     --[[Hàm chính để tính toán hợp nhất các vùng chia vcfxV2_Base, theo dữ liệu từ biến vcfx_data]]
     --[[Cấu trúc bảng đầu vào vcfx_basesize: {1: x, 2: y}, kích thước vùng chia.]]
     --[[Cấu trúc đầu vào vcfx_data: .color {các bảng mẹ vcfx_color}; .range({4x<range>}: các bảng vị trí tương ứng).]]
     --[[Đầu ra: tổng số ô phân giải từ các vùng chia của vxfxV2_Base.]]
+    local new_line=string.char(10)
     vcV2_entity_count,vcV2_entity_key,vcV2_entity_range = {0},{},{}
     for area_index=1,#vcfx_data.color do
-        vcV2_entity_count[area_index] = vcfxV2_Base(vcfx_basesize, vcfx_data.color[color_index], vcfx_data.range[color_index])
+        _G.aegisub.log(3,'[vcfxV2_Main] Đang xét vùng %d/%d.%s',area_index,#vcfx_data.color,new_line)
+        vcV2_entity_count[area_index] = vcfxV2_Base(vcfx_basesize, vcfx_data.color[area_index], vcfx_data.range[area_index])
         vcV2_entity_key[area_index] = vcV2_key
     end
     --[[Đặt các dữ liệu số lượng, key thuộc tính entity]]
@@ -228,17 +230,22 @@ function vctClipS(line_data,entity_data,offset_input)
     --[[Cấu trúc đầu vào line_data: line (mặc định), sử dụng line: .left, .top, .right, .bottom]]
     --[[Nếu đầu vào tùy chỉnh thì cũng sử dụng các key tương tự.]]
     --[[Cấu trúc đầu vào entity_data: vcV2_merged[i] tức vcV2_mergeunit]]
-    --[[vcV2_merged[entity_index]={area_key,x0,y0,x1,y1,xc,yc,index,ix,iy}]]
+    --[[vcV2_merged={entity_index -> {area_key,color{},index,ix,iy,xc,yc,x0,y0,x1,y1} }]]
     --[[Cấu trúc bảng offset_input (v2): 1-2: tịnh tiến, 3-4: mở rộng, 5-6: mở rộng viền]]
-    --[[Cấu trúc bảng v1-v1.5 (bản cũ) : 1-2: mở rộng, 3-4: tịnh tiến, 5-6: mở rộng viền]]
+    local debug=5
+    local new_line=string.char(10)
+    local msg = '[vctClipS] (area_key=%d, index=%d, ix=%d, iy=%d,)%s'
+    _G.aegisub.log(debug,msg,entity_data.area_key,entity_data.index,entity_data.ix,entity_data.iy,new_line)
+    local msg = '[vctClipS] (,c={%.2g,%.2g},0={%.2g,%.2g},1={%.2g,%.2g})%s'
+    _G.aegisub.log(debug,msg,entity_data.xc,entity_data.yc,entity_data.x0,entity_data.y0,entity_data.x1,entity_data.y1,new_line)
     local output = {0,0,0,0}
     --[[4 vị trí cho tag \clip dạng chữ nhật]]
-    output[1]=line_data.left+line_data.width*entity_data.x0+offset_input[1] -offset_input[3]-(entity_data.xc==0 and offset_input[5] or 0)
-    output[2]=line_data.top+line_data.height*entity_data.y0+offset_input[1] -offset_input[3]-(entity_data.yc==0 and offset_input[5] or 0)
-    output[3]=line_data.left+line_data.width*entity_data.x1+offset_input[1] +offset_input[3]+(entity_data.xc==1 and offset_input[5] or 0)
-    output[4]=line_data.top+line_data.width*entity_data.y1+offset_input[1] +offset_input[3]+(entity_data.yc==1 and offset_input[5] or 0)
+    output[1]=line_data.left-offset_input[3]/2+(line_data.width+offset_input[3])*entity_data.x0+offset_input[1] -(entity_data.xc==0 and offset_input[5] or 0)
+    output[2]=line_data.top-offset_input[4]/2+(line_data.height+offset_input[4])*entity_data.y0+offset_input[2] -(entity_data.yc==0 and offset_input[6] or 0)
+    output[3]=line_data.left-offset_input[3]/2+(line_data.width+offset_input[3])*entity_data.x1+offset_input[1] +(entity_data.xc==1 and offset_input[5] or 0)
+    output[4]=line_data.top-offset_input[4]/2+(line_data.height+offset_input[4])*entity_data.y1+offset_input[2] +(entity_data.yc==1 and offset_input[6] or 0)
     for i=1,#output do
-        output[i]=cnfv4(output[i])
+        output[i]=cnfv4(output[i],0)
     end
     return _G.table.concat(output,',')
 end
