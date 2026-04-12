@@ -2,7 +2,8 @@ script_name = "[Level 2] beat-timer"
 script_description = "[Phòng Chill Fansub] Bộ đếm thời gian và nhịp"
 script_author = "Phòng Chill Fansub"
 script_version = "beta 6.0.1.0"
---[[fm2 b6.0.1.0 11apr26]]
+--[[fm2 b6.0.1.1 12apr26]]
+--[[Sửa định dạng commit]]
 --[[update v6.0: cho phép ghép nhịp khác tempo trên cùng 1 bar, tùy chọn update theo beat hoặc frame,...]] 
 
 --[[Cấu trúc đầu vào bpm[i]: {bpm, số bar, số beat/bar, số step/beat, thông số tính bar.}]]
