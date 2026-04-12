@@ -1,8 +1,9 @@
 script_name = "[Level 2] typing_fx"
 script_description = "[Phòng Chill Fansub] Effect tách cụm từ và đánh chữ (tiếng Việt có dấu) theo quy tắc Telex"
 script_author = "Phòng Chill Fansub"
-script_version = "5.0"
---[[v5.0 alpha 0.35, 19/3/2026: sửa lỗi UTFstring2table]]
+script_version = "alpha 5.0.0.35"
+--[[fm3 a5.0.0.35 12apr26]]
+--[[sửa lỗi UTFstring2table]]
 --[[Cập nhật v5.0: lấy dữ liệu trực tiếp từ _G.aegisub.text_extents, thay vì phải sử dụng 1 dòng template char]]
 --[[Mục tiêu: lấy dữ liệu chỉ bằng 1 hàm trên dòng template line (template phổ biến cho trans không kara)]]
 --[[to-do: xóa code cũ v4 và viết typingfxV5()]]
