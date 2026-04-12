@@ -1,8 +1,9 @@
 script_name = "[Level 2] funcdraw"
 script_description = "[Phòng Chill Fansub] Effect công cụ lệnh vẽ Aegisub"
 script_author = "Phòng Chill Fansub"
-script_version = "3.2"
---[[v3.2 beta 1.02 1/4/2026 (prev: project 45c). di chuyển lên GitHub, khớp với các hàm trong lib 1]]
+script_version = "beta 3.2.1.02"
+--[[fm4 b3.2.1.02 12apr26]]
+--[[Thay đổi định dạng commit]]
 
 fd3LastPos = {0,0}
 --[[fd3LastPos {x,y}: điểm vẽ gốc ban đầu/liền trước]]
