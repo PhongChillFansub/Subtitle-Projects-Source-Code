@@ -1,8 +1,9 @@
 script_name = "[Level 1] Lib"
 script_description = "[Phòng Chill Fansub] Thư viện hàm áp dụng cho hiệu ứng Aegisub."
 script_author = "Phòng Chill Fansub"
-script_version = "1.0"
---[[beta 14.13 12/4/2026. Sửa lỗi hàm polar()]]
+script_version = "beta 1.0.14.13"
+--[[fm1 b1.0.14.13 12apr26]]
+--[[Đổi định dạng commit]]
 
 function cmt()
   return ''
@@ -254,4 +255,3 @@ function vctSum(vctSumSlot,vctComponentList)
   end
   return vctSumSlot
 end
---[[]]
