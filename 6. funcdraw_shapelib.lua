@@ -1,10 +1,9 @@
-script_name = "[Level 2] funcdraw"
+script_name = "[Level 2] funcdraw_shapelib"
 script_description = "[Phòng Chill Fansub] Thư viện hình vẽ bằng lệnh vẽ của funcdraw fx"
 script_author = "Phòng Chill Fansub"
-script_version = "3.2"
---[[v3.2 beta 1.04 1/4/2026. Thêm các hình của pj 45a, 45c]]
---[[Sử dụng funcdraw v3.2 beta 1 (di chuyển lên GitHub.)]]
---[[Tương đương lib 2 của tệp phát triển funcdraw v3.1.]]
+script_version = "beta 3.2.1.04"
+--[[fm6 b3.2.1.04 12apr26]]
+--[[Sử dụng funcdraw]]
 
 --[[Các hàm funcdraw:]]
 --[[fd3m(x,y): lệnh đặt điểm vẽ gốc mới (lệnh vẽ 'm'). đầu ra {'m',x,y}]]
