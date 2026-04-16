@@ -1,9 +1,9 @@
 script_name = "[Level 2] beat-timer"
 script_description = "[Phòng Chill Fansub] Bộ đếm thời gian và nhịp"
 script_author = "Phòng Chill Fansub"
-script_version = "beta 6.0.1.0"
---[[fm2 b6.0.1.1 12apr26]]
---[[Sửa định dạng commit]]
+script_version = "beta 6.0.2.0"
+--[[fm2 b6.0.2.0 17apr26]]
+--[[thêm (lại) frame timer trên update beat timer và hàm frame timer độc lập]]
 --[[update v6.0: cho phép ghép nhịp khác tempo trên cùng 1 bar, tùy chọn update theo beat hoặc frame,...]] 
 
 --[[Cấu trúc đầu vào bpm[i]: {bpm, số bar, số beat/bar, số step/beat, thông số tính bar.}]]
@@ -17,15 +17,19 @@ script_version = "beta 6.0.1.0"
 --[[Kết quả là 6 update: 1.1.0, 1.2.0, 1.3.1, 1.3.2, 1.3.3, 1.3.4]]
 --[[Chú ý: nếu cộng dồn thì số bar thành phần phải <1]]
 
-function beatV6(start_offset)
+function beatV6(start_offset,time_mode_enable)
     --[[Hàm tính toán dữ liệu nhịp]]
     --[[Đầu vào gián tiếp: bảng bpm và start_offset]]
+    --[[time_mode_enable: true/false: bật tắt tính toán thời gian theo update của beat timer]]
+    time_mode_enable=_G.tonumber(time_mode_enable)
+    local ms2f,concat=_G.aegisub.frame_from_ms,_G.table.concat
     --[[Đầu ra: bảng dữ liệu beatV6d và số lượng entity/số lần update beatV6c=#beatV6d]]
     --[[beatV6c: sử dụng trong hàm maxloop (khi cần hiển thị update)]]
     --[[beatV6d: {bar,beat,step,area_index,abs_start,abs_end}]]
     --[[với area_index của 1 entity ứng với vùng của nó (trong bảng bpm)]]
-    beatV6d={bar={},beat={},step={},area_index={},abs_start={},abs_end={}}
+    beatV6d={bar={},beat={},step={},area_index={},abs_start={},abs_end={},time={}}
     --[[beatV6d với cấu trúc định sẵn]]
+    --[[time dành cho time_mode_enable]]
     beatV6c=0
     --[[beatV6c = #beatV6d]]
 
@@ -64,21 +68,19 @@ function beatV6(start_offset)
         beatV6d.abs_start[i]=start_offset
         start_offset=start_offset+step_dur
         beatV6d.abs_end[i]=start_offset
+        --[[3. Tính toán time_mode nếu có]]
+        --[[nil/false=tắt, 0: chi phút-giây; 1 (mặc định): ms; 2: frame]]
+        if time_mode_enable then
+            local ms = beatV6d.abs_end[i]
+            local time_output = {math.floor(ms/60000),math.floor(ms/1000)%60,ms%1000}
+            if time_mode_enable==0 then 
+                time_output[3]=nil
+            elseif time_mode_enable==2 then
+                time_output[3]=ms2f(ms) - ms2f(math.floor(ms/1000)*1000)
+            end
+            beatV6d.time=concat(time_output,':')
+        end
     end
     return ''
 end
 
---[[Phần v5 cũ]]
-function time_from_beatV5(ms,mode) 
-    local div=function(a,b)
-        return math.floor(a/b)
-    end
-    timeUIv5 = {div(ms,60000),div(ms,1000)%60,ms%1000} 
-    if (mode or 0) == 0 then 
-        _G.table.remove(timeUIv5) 
-    end 
-    if (mode or 0) == 2 then 
-        timeUIv5[3] = _G.frame_from_ms(ms%1000) 
-    end 
-    return '' 
-end
