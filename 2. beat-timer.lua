@@ -1,8 +1,8 @@
 script_name = "[Level 2] beat-timer"
 script_description = "[Phòng Chill Fansub] Bộ đếm thời gian và nhịp"
 script_author = "Phòng Chill Fansub"
-script_version = "beta 6.0.2.1"
---[[fm2 b6.0.2.1 17apr26]]
+script_version = "beta 6.0.2.2"
+--[[fm2 b6.0.2.2 18apr26]]
 --[[thêm (lại) frame timer trên update beat timer và hàm frame timer độc lập]]
 --[[update v6.0: cho phép ghép nhịp khác tempo trên cùng 1 bar, tùy chọn update theo beat hoặc frame,...]] 
 
@@ -86,4 +86,33 @@ function beatV6(start_offset,time_mode_enable)
 end
 
 function timeV6(time_mode_enable)
-    --[[Hàm frame timer độc lập, lấy line.(start-end)_time làm khoảng thời gian chạy]]
+    --[[Hàm frame timer update độc lập, lấy line.(start-end)_time làm khoảng thời gian chạy]]
+    --[[0/mặc định: m:s, 1: m:s:100ms, 2: m:s:f]]
+    timeV6d={abs_start={0},abs_end={0},text={''}}
+    timeV6c=1
+    if not time_mode_enable then
+        return ''
+    end
+    local concat,ms2f,f2ms=_G.table.concat,_G.aegisub.frame_from_ms,_G.aegisub.ms_from_frame
+    local update_dur,timeV6u=(time_mode_enable==1 and 100 or 1000),{0,0,0}
+    --[[Mặc định: m:s. 1: m:s:100ms]]
+    if time_mode_enable==2 then 
+        --[[phút:giây:khung_hình]]
+        timeV6c=ms2f(line.end_time)-ms2f(line.start_time)
+    else
+        timeV6c=math.ceil((line.duration)/update_dur)
+    end
+    local offset_start=(time_mode_enable==2 and ms2f(line.start_time) or line.start_time)
+    local time_set=function()
+        return time_mode_enable==2 and f2ms(offset_start) or offset_start
+    end
+    for i=1,timeV6c do
+        timeV6d.abs_start[i]=time_set()
+        offset_start=offset_start+1
+        timeV6d.abs_end[i]=time_set()
+        local ms=timeV6d.abs_end[i]
+        local optimized1k,optimized1ka=ms/1000,ms%1000
+        timeV6u[1]=math.floor(optimized1k/60)
+        timeV6u[2]=math.floor(optimized1k%60)
+        timeV6u[3]=(time_mode_enable==1 and math.floor(optimized1ka/100)) or ms2f(ms) - ms2f(ms-optimized1ka)
+    end
