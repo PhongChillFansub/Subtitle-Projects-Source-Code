@@ -1,8 +1,8 @@
 script_name = "[Level 2] beat-timer"
 script_description = "[Phòng Chill Fansub] Bộ đếm thời gian và nhịp"
 script_author = "Phòng Chill Fansub"
-script_version = "beta 6.0.2.3"
---[[fm2 b6.0.2.3 18apr26]]
+script_version = "beta 6.0.2.4"
+--[[fm2 b6.0.2.4 18apr26]]
 --[[thêm (lại) frame timer trên update beat timer và hàm frame timer độc lập]]
 --[[update v6.0: cho phép ghép nhịp khác tempo trên cùng 1 bar, tùy chọn update theo beat hoặc frame,...]] 
 
@@ -16,6 +16,10 @@ script_version = "beta 6.0.2.3"
 --[[Còn nếu cộng dồn thì sẽ tính trực tiếp vào vùng bar cũ]]
 --[[Kết quả là 6 update: 1.1.0, 1.2.0, 1.3.1, 1.3.2, 1.3.3, 1.3.4]]
 --[[Chú ý: nếu cộng dồn thì số bar thành phần phải <1]]
+
+function beatform(input)
+    return string.format('%02d',input)
+end
 
 function beatV6(start_offset,time_mode_enable)
     --[[Hàm tính toán dữ liệu nhịp]]
@@ -73,13 +77,13 @@ function beatV6(start_offset,time_mode_enable)
         if time_mode_enable then
             local ms = beatV6d.abs_end[i]
             local optimized1k=math.floor(ms/1000)
-            local time_output = {math.floor(ms/60000),optimized1k%60,ms%1000}
+            local time_output = {math.floor(ms/60000),beatform(optimized1k%60),beatform(ms%1000)}
             if time_mode_enable==0 then 
                 time_output[3]=nil
             elseif time_mode_enable==2 then
-                time_output[3]=ms2f(ms) - ms2f(optimized1k*1000)
+                time_output[3]=beatform(ms2f(ms) - ms2f(optimized1k*1000))
             end
-            beatV6d.time=concat(time_output,':')
+            beatV6d.time[i]=concat(time_output,':')
         end
     end
     return ''
@@ -120,13 +124,13 @@ function timeV6(time_mode_enable)
         local ms=timeV6d.abs_end[i]
         local optimized1k,optimized1ka=ms/1000,ms%1000
         timeV6u[1]=math.floor(optimized1k/60)
-        timeV6u[2]=math.floor(optimized1k%60)
+        timeV6u[2]=beatform(math.floor(optimized1k%60))
         if time_mode_enable==1 then
             --[[m:s:100ms]]
-            timeV6u[3]=math.floor(optimized1ka/100)
+            timeV6u[3]=beatform(math.floor(optimized1ka/100))
         elseif time_mode_enable==2 then
             --[[m:s:f]]
-            timeV6u[3]=ms2f(ms) - ms2f(ms-optimized1ka)
+            timeV6u[3]=beatform(ms2f(ms) - ms2f(ms-optimized1ka))
         else
             --[[mặc định m:s]]
             timeV6u[3]=nil
