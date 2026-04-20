@@ -2,7 +2,7 @@ script_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
---[[fm8 b2.0.3.0 20apr26]]
+--[[fm8 a2.0.3.0 20apr26]]
 
 function get_char_type(char)
     --[[vibe coding (chatgpt, gemini), đã sửa]]
