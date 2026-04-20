@@ -2,7 +2,7 @@ script_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
 script_version = "2.0"
---[[fm8 b2.0.2.03 12apr26]]
+--[[fm8 b2.0.3.0 20apr26]]
 
 function get_char_type(char)
     --[[vibe coding (chatgpt, gemini), đã sửa]]
@@ -39,21 +39,44 @@ function copy_line_data()
     return '' 
 end
 
-function auto_kanji_timer_v2(force_merge)
+function auto_kanji_timer_v2(manual_note)
     --[[Auto Kanji Timer v2.]]
     --[[Đầu vào lấy từ dữ liệu orgline (câu Kanji (có sẵn hiragana), stripped)]]
     --[[Cấu trúc đơn vị đầu vào: <1 chữ kanji>(<các chữ furigana của nó>). vd: '君(きみ)']]
     --[[Yêu cầu đầu vào kanji có furigana, có thể dùng AI để tiền xử lí.]]
     --[[Hoặc 1 chữ katakana/hiragana. vd: 優(やさ)しい gồm 3 đơn vị 優(やさ), し, い]]
     --[[Đầu ra: vd: 優(やさ)しい -> {\k<t1>}優|や{\k<t2>}#|さ{\k<t3>}し{\k<t4>}い]]
+
+    --[[manual_note (mặc định: dấu nối/ngắt thủ công (ghi chú của người dùng). Nếu nằm cạnh kí tự romaji thì tách, nếu không thì nối.)]]
+    --[[Nếu 2 bên là 2 kiểu kí tự khác nhau thì đã tự động tách nên không cần dấu ngắt]]
+    manual_note=manual_note or '`'
+    --[[Các dấu cố định: (): mở khối furigana, 「」: mở khối kanji cho kí tự đặc biệt.]]
+    --[[Các quy tắc đặc biệt:]]
+    --[[Romaji luôn được coi như nằm trong 1 khối 「」 mà không cần đánh dấu (luôn phải có furigana)]]
+    --[[Cụm kí tự trong khối kanji đặc biệt được coi như 1 kí tự kanji]]
+
     --[[Phần 1: 優(やさ)しい -> {\k1}優|や{\k1}#|さ{\k1}し{\k1}い]]
     --[[ (Tạo syl cho line) ]]
-    local notif_char, notif_sylcreate, notif_syl = 5,5,5
-    local output, new_line, concat = {}, string.char(10), _G.table.concat
+    local notif_char, notif_sylcreate, notif_syl = 3,3,3
+    local output, new_line, concat, log = {}, string.char(10), _G.table.concat, _G.aegisub.log
     local using_kanji, last_char, furigana_mode = '','', false
+    local rep_err=function(mode)
+        if mode=='kanji_no_furi' then
+            --[[Khi đọc 1 char, thấy char trước đó là kanji, mà char này không phải kanji (nối) hoặc dấu mở furi '('.]]
+            local msg = '[autoKanjiTimer_v2] L: %d, kan %s (i:%d) không có furi?%s'
+            log(3,msg, orgline.i,using_kanji,index-1,new_line)
+        elseif mode=='kanji_in_furi' then
+            --[[Khi xuất hiện kanji trong khối furigana]]
+            local msg = '[autoKanjiTimer_v2] L:%d, kan %s (i:%d) trong khối furi?%s'
+            log(3,msg, orgline.i,char,index,new_line)
+            
+            --[[to-do: sửa ở đây]]
+
+        end
+    end
     for char,index in _G.unicode.chars(orgline.text_stripped) do
         local ctype, ltype = get_char_type(char), get_char_type(last_char ~= '' and last_char or force_merge)
-        _G.aegisub.log(notif_char,'[autoKanjiTimer_v2] L:%d, char \'%s\' (i=%d). %s',orgline.i,char,index,new_line)
+        _G.aegisub.log(notif_char,'[autoKanjiTimer_v2] L:%d, đọc %s \'%s\' (i=%d). %s',orgline.i,ctype,char,index,new_line)
         if ctype=='kanji' then
             --[[char là kanji]]
             if index==1 or ltype == 'kanji' then
@@ -90,9 +113,8 @@ function auto_kanji_timer_v2(force_merge)
             --[[char là char đóng khối furigana]]
             furigana_mode = false
             using_kanji = ''
-        elseif char==force_merge then
-            --[[liên kết char phía sau với âm trước (can thiệp từ người dùng)]]
-            --[[ko làm gì cả]]
+        elseif char==manual_note then
+            
         elseif last_char==force_merge or ctype=='katakana_youon' or ctype=='hiragana_youon' then
             --[[char là youon, gộp với char trước để tạo thành âm]]
             --[[hoặc là liên kết char phía sau với âm trước (can thiệp từ người dùng)]]
