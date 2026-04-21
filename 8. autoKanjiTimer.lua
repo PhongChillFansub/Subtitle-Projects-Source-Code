@@ -1,12 +1,11 @@
 script_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
-script_version = "2.0"
---[[fm8 a2.0.3.2 21apr26]]
+script_version = "2.0.3.3"
+--[[fm8 a2.0.3.3 22apr26]]
 
 function get_char_type(char)
     if char == '' then return 'nil' end
-    --[[vibe coding (chatgpt, gemini), đã sửa]]
     --[[Lấy mã Unicode (decimal) của ký tự]] 
     local cp = _G.unicode.codepoint(char)
     if (cp >= 0x4E00 and cp <= 0x9FAF) or cp == 0x3005 then
@@ -46,14 +45,14 @@ function auto_kanji_timer_v2(force_merge)
     --[[Quy tắc dấu ghi chú cho kanji-furi:]]
     --[[1. Mọi chú thích furi thông thường đều bằng dấu () hoặc []. vd:君(きみ).]]
     --[[   Dấu () và [] này không hiển thị.]]
-    --[[2. Phần hát phụ chú thích bằng <> hoặc （）. Đầu ra là dấu （）]]
-    --[[   Dấu （） này có hiển thị.]]
+    --[[2. Phần hát phụ chú thích bằng dấu ngoặc thông thường (trùng với mở/đóng khối furi)]]
+    --[[   Tuy nhiên, đã có cơ chế lọc dựa trên chính trạng thái khối và using_kanji.]]
     --[[3. Mọi chú thích kanji-furi đặc biệt đều bằng dấu "". vd: “▽”[しんぞう]. Đầu ra là 「」. vd:「▽」|しんぞう.]]
     --[[   Dấu "" này có hiển thị (dưới dạng 「」).]]
     --[[4. Các kí tự trong khối kanji đặc biệt "" được coi như 1 kí tự kanji.]]
     --[[5. Mọi từ romaji đều phải có furi như kanji, và sẽ được coi như 1 dạng "kanji" thứ 3.]]
-    --[[6. force_merge (mặc định: '&'): dấu nối thủ công (ghi chú của người dùng).]]
-    --[[   Nếu muốn nối thủ công, sử dụng force_merge. Nếu muốn tách thủ công, sử dụng ] hoặc ).]]
+    --[[6. force_merge (mặc định: '&'): dấu nối/tách thủ công (ghi chú của người dùng).]]
+    --[[   Có thể sử dụng để nối kana thủ công, hoặc tách romaji thủ công]]
     force_merge=force_merge or '&'
     --[[Yêu cầu đầu vào kanji có furigana, dùng AI để tiền xử lí, sau đó check thủ công.]]
     --[[Cấu trúc đơn vị đầu vào: <1 chữ kanji>(<các chữ furigana của nó>). vd: '君(きみ)']]
@@ -81,6 +80,13 @@ function auto_kanji_timer_v2(force_merge)
         return nil
     end
 
+    fm8_openfuri=type(fm8_openfuri)=='function' and fm8_openfuri or function(char)
+        return (char=='(' or char=='（' or char=='[' or char=='［')
+    end
+    fm8_closefuri=type(fm8_closefuri)=='function' and fm8_closefuri or function(char)
+        return (char==')' or char=='）' or char==']' or char=='］')
+    end
+
     fm8_block=type(fm8_block)=='function' and fm8_block or function()
         --[[Hàm đánh dấu khối chức năng (khối sử dụng các kí tự chuyên dụng để đánh dấu), sử dụng ctype và ltype, char, last_char trong vòng lặp]]
         --[[ctype, ltype=get_char_type(char),get_char_type(last_char)]]
@@ -88,14 +94,14 @@ function auto_kanji_timer_v2(force_merge)
         if (char=='"' or char=='「') and block=='none' then
             --[[Mở khối kansp]]
             block='kansp'
-        elseif char='(' or char='[' then
+        elseif fm8_openfuri(char) then
             --[[Mở khối furi]]
             block='furi'
 
         elseif (block=='kansp' and last_char=='"') or last_char=='」' then
             --[[Đóng khối kansp]]
             block='none'
-        elseif last_char=')' or last_char=']' then
+        elseif fm8_closefuri(last_char) then
             --[[Đóng khối furi]]
             block='none'
         end
@@ -106,99 +112,129 @@ function auto_kanji_timer_v2(force_merge)
         if mode=='furi_no_kanji' then
             --[[Khi mở khối furigana mà không có khối kanji phía trước]]
             local msg= '[autoKanjiTimer_v2] L: %d, furi (i:%d) không có kanji phía trước?%s'
-            log(3,msg, orgline.i,index,new_line)
+            log(3,msg, orgline.i,fm8_data.index,new_line)
         elseif mode=='kanji_no_furi' then
             --[[Khi đọc 1 char, thấy char trước đó là kanji, mà char này không phải kanji (nối) hoặc dấu mở furi '('.]]
             local msg = '[autoKanjiTimer_v2] L: %d, kan %s (i<%d) không có furi?%s'
-            log(3,msg, orgline.i,using_kanji,index,new_line)
+            log(3,msg, orgline.i,using_kanji,fm8_data.index,new_line)
         elseif mode=='kanji_in_furi' then
             --[[Khi xuất hiện kanji trong khối furigana]]
             local msg = '[autoKanjiTimer_v2] L:%d, kan %s (i:%d) trong khối furi?%s'
-            log(3,msg, orgline.i,char,index,new_line)
+            log(3,msg, orgline.i,fm8_data.char,fm8_data.index,new_line)
         elseif mode=='abnormal' then
             local msg = '[autoKanjiTimer_v2] L:%d, đặt dấu "%s" (i:%d) bất thường?%sCâu: %s%sVị trí: sau %s%s'
-            log(3,msg,orgline.i,char,index,new_line,orgline.text_stripped,new_line,(last_char~='' and last_char or '(đầu câu)'),new_line)
+            log(3,msg,orgline.i,fm8_data.char,fm8_data.index,new_line,orgline.text_stripped,new_line,(last_char~='' and last_char or '(đầu câu)'),new_line)
         elseif mode=='char' then
-            log(notif_char,'[autoKanjiTimer_v2] L:%d, đọc %s \'%s\' (i=%d). %s',orgline.i,ctype,char,index,new_line)
+            log(notif_char,'[autoKanjiTimer_v2] L:%d, đọc %s \'%s\' (i=%d). %s',orgline.i,ctype,fm8_data.char,fm8_data.index,new_line)
         elseif mode=='sylcreate' then
-            log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, tạo syl mới i=%d, \'%s\'%s',orgline.i,syli,output[syli],new_line)
+            log(notif_sylcreate,'[autoKanjiTimer_v2] L:%d, tạo syl mới i=%d, \'%s\'%s',orgline.i,fm8_data.syli,output[fm8_data.syli],new_line)
         elseif mode=='other' then
             local msg = '[autoKanjiTimer_v2] L:%d, kí tự \'%s\' (i:%d) là \'other\', sau %s.%s'
-            log(notif_sylcreate,msg,orgline.i,char,index,ltype,new_line)
+            log(notif_sylcreate,msg,orgline.i,fm8_data.char,fm8_data.index,fm8_data.ltype,new_line)
         end 
         return nil
     end
 
     --[[Phần luồng chạy chính]]
 
-    for char,index in _G.unicode.chars(orgline.text_stripped) do
+    for char,index in _G.unicode.chars(processed_sentence) do
         --[[Xét các kí tự]]
-        local ctype, ltype, syli = get_char_type(char), get_char_type(last_char ~= '' and last_char or manual_note), #output
+        local ctype, ltype, syli = get_char_type(char), get_char_type(last_char ~= '' and last_char or force_merge), #output
+        fm8_data={index=index,char=char,ctype=ctype,ltype=ltype,syli=syli}
         local _,_=fm8_log('char'),fm8_block()
         --[[Cập nhật biến block]]
-        if last_char==force_merge and syli>0 then
+        if last_char==force_merge and syli>0 and ctype~='romaji' then
             --[[0. last_char là dấu nối thủ công (char sẽ nối với syl đang xét), và có syl để nối]]
             --[[Chú ý: dấu nối hoạt động với mọi kí tự, kể cả các dấu chức năng khối.]]
             _=fm8_add(char,output[syli],0)
-        elseif block='kansp' then
+        elseif block=='kansp' then
             --[[1. Chr trong khối kansp, kể cả các dấu mở/đóng ""]]
             _=fm8_add(char,using_kanji)
             --[[Kansp không phải là vị trí tạo syl mới.]]
-        elseif ctype='kanji' then
+        elseif ctype=='kanji' then
             --[[2. Chr là kanji (chú ý: không phải kansp)]]
-            if index==1 or ltype == 'kanji' then
-                --[[2.1. Chr này liên kết với char trước]]
-                --[[2.1.1. Kanji đầu câu (last_char='')]]
-                --[[2.1.2. Kanji phía sau 1 kanji khác]]
-                _=fm8_add(char,using_kanji)
-            elseif using_kanji == '' then
-                --[[2.2. Chr trước không phải kanji. Không có using_kanji.]]
-                --[[Tức là: Chr này không phải đầu câu, và là kanji mới]]
+            if using_kanji == '' then
+                --[[2.1. Không có using_kanji (kanji/romaji phía trước đã kết thúc)]]
+                --[[Tức là đây là kanji đầu của cụm mới]]
                 using_kanji=char
             else
-                --[[2.3. Chr trước không phải kanji. Nhưng vẫn có using_kanji?]]
-                --[[Tức là using_kanji đã không được kết thúc (char nằm trước dấu ),] đóng khối furi.)]]
-                if block=='kansp' then
-                    --[[2.3.1. Chr hiện tại nằm trong khối kansp. Không thể xảy ra vì đã ở TH 1.]]
-                elseif block=='furi' then
-                    --[[2.3.2. Chr hiện tại nằm trong khối furi.]]
-                    --[[Tức là lỗi kanji_in_furi]]
-                    _=fm8_err('kanji_in_furi')
-                    --[[Xử lí: Biến kanji này thành using_kanji mới, và thoát khỏi khối furi]]
-                    block=='none'
+                --[[2.2. Có using_kanji]]
+                if ltype=='kanji' then
+                    --[[2.2.1. Chr này liên kết với char kanji trước]]
+                    _=fm8_add(char,using_kanji)
                 else
-                    --[[2.3.3. Chr hiện tại nằm ở "khối" none.]]
-                    --[[Tức là không có dấu mở khối furi trước char hiện tại]]
-                    --[[hay chính là: using_kanji không có furi tương ứng.]]
-                    _=fm8_err('kanji_no_furi')
-                    --[[Xử lí: biến kanji này thành using_kanji mới]]
+                    --[[2.2.2. Chr trước không phải kanji. Nhưng vẫn có using_kanji?]]
+                    --[[Tức là using_kanji đã không được kết thúc (char nằm trước dấu đóng khối furi.)]]
+                    if block=='kansp' then
+                        --[[2.2.2.1. Chr hiện tại nằm trong khối kansp. Không thể xảy ra vì đã ở TH 1.]]
+                    elseif block=='furi' then
+                        --[[2.2.2.2. Chr hiện tại nằm trong khối furi.]]
+                        --[[Tức là lỗi kanji_in_furi]]
+                        _=fm8_log('kanji_in_furi')
+                        --[[Xử lí: Biến kanji này thành using_kanji mới, và thoát khỏi khối furi]]
+                        block='none'
+                    else
+                        --[[2.2.2.3. Chr hiện tại nằm ở "khối" none.]]
+                        --[[Tức là không có dấu mở khối furi trước char hiện tại]]
+                        --[[hay chính là: using_kanji không có furi tương ứng.]]
+                        _=fm8_log('kanji_no_furi')
+                        --[[Xử lí: biến kanji này thành using_kanji mới]]
+                    end
+                    using_kanji=char
                 end
-                using_kanji==char
             end
             --[[Kanji không phải là vị trí tạo syl mới.]]
         elseif ctype=='romaji' then
             --[[3. char là romaji]]
-            if index==1 or ltype~='romaji' then
-                --[[3.1. char romaji đầu câu hoặc last_char khác romaji.]]
-                _=fm8_add(char,'',1)
+            if using_kanji=='' then
+                --[[3.1. Ko có using_kanji (kan/rom phía trước đã kết thúc)]]
+                using_kanji==char
             else
-                _=fm8_add(char,output[syli],0)
+                --[[3.2. Có using_kanji]]
+                if ltype=='romaji' then
+                    --[[3.2.1. Chr này liên kết với romaji trước]]
+                    _=fm8_add(char,using_kanji)
+                else
+                    --[[3.2.2. Chr trước không phải rom. Nhưng vẫn có using_kanji?]]
+                    --[[Tức là using_kanji đã không được kết thúc (char nằm trước dấu đóng khối furi.)]]
+                    if block=='kansp' then
+                        --[[3.2.2.1. Chr hiện tại nằm trong khối kansp. Không thể xảy ra vì đã ở TH 1.]]
+                    elseif block=='furi' then
+                        --[[3.2.2.2. Chr hiện tại nằm trong khối furi.]]
+                        --[[Tức là lỗi kanji_in_furi]]
+                        _=fm8_log('kanji_in_furi')
+                        --[[Xử lí: Biến kanji này thành using_kanji mới, và thoát khỏi khối furi]]
+                        block='none'
+                    else
+                        --[[3.2.2.3. Chr hiện tại nằm ở "khối" none.]]
+                        --[[Tức là không có dấu mở khối furi trước char hiện tại]]
+                        --[[hay chính là: using_kanji không có furi tương ứng.]]
+                        _=fm8_log('kanji_no_furi')
+                        --[[Xử lí: biến kanji này thành using_kanji mới]]
+                    end
+                    using_kanji=char
+                end
             end
-        elseif char=='(' or char='[' then
+        elseif fm8_openfuri(char) then
             --[[4. char mở khối furi]]
             if using_kanji=='' then
                 --[[4.1. Khi mở dấu này, không có using_kanji?]]
-                _=fm8_err('furi_no_kanji')
-                --[[Xử lí: thoát khối furi]]
+                _=fm8_log('furi_no_kanji')
+                --[[Xử lí: thoát khối furi, coi như 1 dấu mở ngoặc thông thường và hiển thị]]
                 block='none'
+                _=fm8_add(char,'',1)
             else
                 --[[4.2. Nếu có using_kanji? Đó là bình thường. Nhưng do char này không hiển thị nên không có lệnh nào khác.]]
             end
-        elseif char==')' or char=']' then
+        elseif fm8_closefuri(char) then
             --[[5. char đóng khối furi]]
-            --[[Xóa using_kanji hiện thời]]
-            --[[Dấu này cũng có thể dùng để tách romaji thủ công?]]
-            using_kanji=''
+            if block=='furi' then
+                --[[5.1. Đóng khối furi thông thường. Xóa using_kanji hiện thời]]
+                using_kanji=''
+            else
+                --[[5.2. Không có khối furi để đóng. Coi như dấu đóng ngoặc thông thường, hiển thị]]
+                _=fm8_add(char,'',1)
+            end
         elseif ctype=='katakana_youon' or ctype=='hiragana_youon' then
             --[[6. char là youon]]
             --[[youon ở đầu câu? là trường hợp ngữ pháp hiếm, nhưng cho phép]]
@@ -233,11 +269,20 @@ function auto_kanji_timer_v2(force_merge)
         elseif ctype=='other' then
             --[[8. char là other (ngoài các kí tự khối furi, ngoài khối kansp, không được nối thủ công)]]
             _=fm8_log('other')
-            if index==1 or last_char==')' or last_char==']' or last_char=='」' or ltype~='other' then
-                --[[8.1. char other này đứng đầu câu, sau kí tự đóng khối furi, hoặc sau 1 kí tự không phải other khác]]
+            if using_kanji~='' then
+                --[[8.1. char other này nằm giữa kan/rom và khối furi (trước kí tự kết thúc khối furi)]]
+                if block=='furi' then
+                    --[[8.1.1. Nếu ở trong khối furi, thì tự động thêm vào syl đang xét mà không cần dấu nối thủ công]]
+                    _=fm8_add(char,output[syli],0)
+                else
+                    --[[8.2.2. Nếu ở giữa kan/rom và khối furi, thì tự động thêm vào using_kanji]]
+                    _=fm8_add(char,using_kanji)
+                end
+            elseif syli==0 or fm8_closefuri(last_char) or ltype~='other' then
+                --[[8.2. char other này đứng đầu câu, sau kí tự đóng khối furi, hoặc sau 1 kí tự không phải other khác]]
                 _=fm8_add(char,'',1)
             else
-                --[[8.2. Các trường hợp khác?]]
+                --[[8.3. Các trường hợp khác?]]
                 _=fm8_add(char,output[syli],0)
             end
         end
