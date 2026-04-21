@@ -2,8 +2,8 @@ script_name = "[Level 1] Lib"
 script_description = "[Phòng Chill Fansub] Thư viện hàm áp dụng cho hiệu ứng Aegisub."
 script_author = "Phòng Chill Fansub"
 script_version = "beta 1.0.14.13"
---[[fm1 b1.0.14.13 12apr26]]
---[[Đổi định dạng commit]]
+--[[fm1 b1.0.14.14 21apr26]]
+--[[Sửa lỗi draw2table()]]
 
 function cmt()
   return ''
@@ -104,7 +104,7 @@ end
 
 function draw2table(string_input,separateStr)
   local table_output = {}
-  for word in inputString:gmatch( '([^'..(separateStr or '%s+')..']+)' ) do 
+  for word in string_input:gmatch( '([^'..(separateStr or '%s+')..']+)' ) do 
     table_output[#table_output+1]=word
   end
   return table_output
