@@ -1,8 +1,8 @@
 script_name = "[Misc] autoKanjiTimer"
 script_description = "[Phòng Chill Fansub] Các hàm xử lí tự động cho Kanji Timer"
 script_author = "Phòng Chill Fansub"
-script_version = "2.0.3.6"
---[[fm8 a2.0.3.6 22apr26]]
+script_version = "2.0.3.7"
+--[[fm8 b2.0.3.7 22apr26]]
 
 function get_char_type(char)
     if char == '' then return 'nil' end
@@ -52,7 +52,7 @@ function auto_kanji_timer_v2(force_merge)
     --[[4. Các kí tự trong khối kanji đặc biệt "" được coi như 1 kí tự kanji.]]
     --[[5. Mọi từ romaji đều phải có furi như kanji, và sẽ được coi như 1 dạng "kanji" thứ 3.]]
     --[[6. force_merge (mặc định: '&'): dấu nối/tách thủ công (ghi chú của người dùng).]]
-    --[[   Có thể sử dụng để nối kana thủ công, hoặc tách romaji thủ công]]
+    --[[   Có thể sử dụng để nối kana thủ công, hoặc tách romaji và other thủ công]]
     force_merge=force_merge or ';'
     --[[Yêu cầu đầu vào kanji có furigana, dùng AI để tiền xử lí, sau đó check thủ công.]]
     --[[Cấu trúc đơn vị đầu vào: <1 chữ kanji>(<các chữ furigana của nó>). vd: '君(きみ)']]
@@ -62,10 +62,10 @@ function auto_kanji_timer_v2(force_merge)
 
     --[[Phần 1: 優(やさ)しい -> {\k1}優|や{\k1}#|さ{\k1}し{\k1}い]]
     --[[ (Tạo syl cho line) ]]
-    fm8_debug = orgline.i==79 and 3 or 5
+    fm8_debug = 5
     local new_line, concat, log, type = string.char(10), _G.table.concat, _G.aegisub.log, _G.type
     local using_kanji, last_char = '', ''
-    fm8_output,fm8_block={},'none'
+    fm8_output,fm8_block,fm8_merge={},'none',''
     --[[Phần đặt hàm/chương trình con]]
     fm8_add=type(fm8_add)=='function' and fm8_add or function(char,string,create)
         --[[Hàm thêm kí tự vào syl hiện xét (fm8_output[#fm8_output]), syl mới, hoặc chỉ thêm vào]]
@@ -136,8 +136,8 @@ function auto_kanji_timer_v2(force_merge)
         elseif mode=='char' then
             local msg='[autoKanjiTimer_v2] L:%d, đọc %s \'%s\' (i=%d). (%s) %s'
             local check1=(fm8_openfuri(fm8_data.char) and 'openfuri') or (fm8_closefuri(fm8_data.char) and 'closefuri') or ''
-            local check2=fm8_data.using_kanji
-            log(fm8_debug,msg,orgline.i,fm8_data.ctype,fm8_data.char,fm8_data.index,check1,new_line)
+            local check2=fm8_merge
+            log(fm8_debug,msg,orgline.i,fm8_data.ctype,fm8_data.char,fm8_data.index,check2,new_line)
         elseif mode=='sylcreate' then
             log(fm8_debug,'[autoKanjiTimer_v2] L:%d, tạo syl mới i=%d, \'%s\'%s',orgline.i,#fm8_output,fm8_output[#fm8_output],new_line)
         elseif mode=='other' then
@@ -156,10 +156,17 @@ function auto_kanji_timer_v2(force_merge)
         local _=fm8_log('char')
         fm8_block=fm8_setblk(char,last_char)
         --[[Cập nhật biến fm8_block]]
-        if last_char==force_merge and syli>0 and ctype~='romaji' then
-            --[[0. last_char là dấu nối thủ công (char sẽ nối với syl đang xét), và có syl để nối]]
-            --[[Chú ý: dấu nối hoạt động với mọi kí tự, kể cả các dấu chức năng khối.]]
+        if last_char~=force_merge then fm8_merge='' end
+        if char==force_merge then
+            --[[0a. char là dấu nối thủ công, và có char trước để nối]]
+            if index~=1 then
+                fm8_merge=ltype
+            end
+        elseif last_char==force_merge and syli>0 and fm8_merge~='romaji' and fm8_merge~='other' then
+            --[[0b. last_char là dấu nối thủ công (char sẽ nối với syl đang xét), và có syl để nối]]
+            --[[Chú ý: dấu nối không hoạt động với romaji và other.]]
             _=fm8_add(char,fm8_output[syli],0)
+            fm8_merge=''
         elseif fm8_block=='kansp' then
             --[[1. Chr trong khối kansp, kể cả các dấu mở/đóng ""]]
             using_kanji=fm8_add(char,using_kanji)
@@ -303,8 +310,9 @@ function auto_kanji_timer_v2(force_merge)
                 end
             end
             _=fm8_add(char,add_unit,1)
-        elseif ctype=='other' and char~=force_merge then
+        elseif ctype=='other' then
             --[[8. char là other (ngoài các kí tự khối furi, ngoài khối kansp, không được nối thủ công)]]
+            --[[Ngoài force_merge (TH 0a)]]
             _=fm8_log('other')
             if using_kanji~='' then
                 --[[8.1. char other này nằm giữa kan/rom và khối furi (trước kí tự kết thúc khối furi)]]
@@ -323,7 +331,7 @@ function auto_kanji_timer_v2(force_merge)
                 _=fm8_add(char,fm8_output[syli],0)
             end
         end
-        log(fm8_debug,'--- %s%s',using_kanji,new_line)
+        log(fm8_debug,'--- %s%s',fm8_merge,new_line)
         last_char=char
     end
 
