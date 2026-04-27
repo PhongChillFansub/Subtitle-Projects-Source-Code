@@ -1,9 +1,10 @@
 script_name = "[Level 2] vcfx"
 script_description = "[Phòng Chill Fansub] Effect màu vector (vector color, \\vc) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
-script_version = "beta 2.0.1.1"
---[[fm5 b2.0.1.1 12apr26]]
+script_version = "beta 2.0.2.0"
+--[[fm5 b2.0.2.0 27apr26]]
 --[[Cập nhật vcfx v2.0: cho phép áp dụng nhiều bảng màu 2x2 trong 1 mục tiêu.]]
+--[[b2.0.2.0: cập nhật memoization (cơ bản) cho vctClipS()]]
 --[[Sử dụng independentCounter, interpolate_color_2d của lib 1]]
 vcfx_debug = 5
 vcfxV2_lod_const = nil
@@ -234,22 +235,29 @@ function vctClipS(text_data,entity_data,offset_input)
     --[[Cấu trúc đầu vào entity_data: vcV2_merged[i] tức vcV2_mergeunit]]
     --[[vcV2_merged={entity_index -> {area_key,color{},index,ix,iy,xc,yc,x0,y0,x1,y1} }]]
     --[[Cấu trúc bảng offset_input (v2): 1-2: tịnh tiến, 3-4: mở rộng, 5-6: mở rộng viền]]
+    text_data=text_data or text_data_last
+    entity_data=entity_data or entity_data_last
+    offset_input=offset_input or offset_input_last
+    --[[Phần lưu dữ liệu lần chạy liền trước]]
     local new_line=string.char(10)
     local msg = '[vctClipS] (area_key=%d, index=%d, ix=%d, iy=%d,)%s'
     _G.aegisub.log(vcfx_debug,msg,entity_data.area_key,entity_data.index,entity_data.ix,entity_data.iy,new_line)
     local msg = '[vctClipS] (,c={%.2g,%.2g},0={%.2g,%.2g},1={%.2g,%.2g})%s'
     _G.aegisub.log(vcfx_debug,msg,entity_data.xc,entity_data.yc,entity_data.x0,entity_data.y0,entity_data.x1,entity_data.y1,new_line)
-    local output = {0,0,0,0}
+    vctClip = {0,0,0,0}
     local newbox={text_data[3]-text_data[1]+offset_input[3],text_data[4]-text_data[2]+offset_input[4]}
     --[[4 vị trí cho tag \clip dạng chữ nhật]]
-    output[1]=text_data[1]-offset_input[3]/2+newbox[1]*entity_data.x0+offset_input[1] -(entity_data.xc==0 and offset_input[5] or 0)
-    output[2]=text_data[2]-offset_input[4]/2+newbox[2]*entity_data.y0+offset_input[2] -(entity_data.yc==0 and offset_input[6] or 0)
-    output[3]=text_data[1]-offset_input[3]/2+newbox[1]*entity_data.x1+offset_input[1] +(entity_data.xc==1 and offset_input[5] or 0)
-    output[4]=text_data[2]-offset_input[4]/2+newbox[2]*entity_data.y1+offset_input[2] +(entity_data.yc==1 and offset_input[6] or 0)
-    for i=1,#output do
-        output[i]=cnfv4(output[i],0)
+    vctClip[1]=text_data[1]-offset_input[3]/2+newbox[1]*entity_data.x0+offset_input[1] -(entity_data.xc==0 and offset_input[5] or 0)
+    vctClip[2]=text_data[2]-offset_input[4]/2+newbox[2]*entity_data.y0+offset_input[2] -(entity_data.yc==0 and offset_input[6] or 0)
+    vctClip[3]=text_data[1]-offset_input[3]/2+newbox[1]*entity_data.x1+offset_input[1] +(entity_data.xc==1 and offset_input[5] or 0)
+    vctClip[4]=text_data[2]-offset_input[4]/2+newbox[2]*entity_data.y1+offset_input[2] +(entity_data.yc==1 and offset_input[6] or 0)
+    for i=1,#vctClip do
+        vctClip[i]=cnfv4(vctClip[i],0)
     end
-    return _G.table.concat(output,',')
+    text_data_last=text_data
+    entity_data_last=entity_data
+    offset_input_last=offset_input
+    return _G.table.concat(vctClip,',')
 end
 
 function vctColorS(vcfx_color,newrange)
@@ -269,3 +277,8 @@ function vctColorS(vcfx_color,newrange)
     --[[1: \an3, right-bottom]]
     return output
 end
+
+vc=function(j,palette) 
+    return interpolate_color_2d(vcV2_merged[j].xc,vcV2_merged[j].yc,vcV2_merged[j].color[palette]) 
+end
+--[[Hàm gọi nhanh màu của entity]]
