@@ -1,13 +1,38 @@
 script_name = "[Level 2] vcfx"
 script_description = "[Phòng Chill Fansub] Effect màu vector (vector color, \\vc) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
-script_version = "beta 2.0.2.0"
---[[fm5 b2.0.2.0 27apr26]]
+script_version = "beta 2.0.2.1"
+--[[fm5 b2.0.2.1 27apr26]]
 --[[Cập nhật vcfx v2.0: cho phép áp dụng nhiều bảng màu 2x2 trong 1 mục tiêu.]]
---[[b2.0.2.0: cập nhật memoization (cơ bản) cho vctClipS()]]
 --[[Sử dụng independentCounter, interpolate_color_2d của lib 1]]
 vcfx_debug = 5
 vcfxV2_lod_const = nil
+
+function deep_compare(t1, t2)
+    --[[vibe coding (gemini)]]
+    -- 1. Nếu cả hai là cùng một địa chỉ hoặc cùng một giá trị cơ bản (number, string)
+    if t1 == t2 then return true end
+    
+    -- 2. Kiểm tra kiểu dữ liệu, nếu một cái là table cái kia không phải thì chắc chắn khác nhau
+    if type(t1) ~= "table" or type(t2) ~= "table" then return false end
+    
+    -- 3. Duyệt qua tất cả các key của t1 để so sánh với t2
+    for k, v in pairs(t1) do
+        -- Nếu key k không tồn tại trong t2 hoặc giá trị tại k khác nhau
+        if t2[k] == nil or not deep_compare(v, t2[k]) then
+            return false
+        end
+    end
+    
+    -- 4. Kiểm tra ngược lại xem t2 có key nào mà t1 không có không
+    for k, v in pairs(t2) do
+        if t1[k] == nil then
+            return false
+        end
+    end
+    
+    return true
+end
 
 function vcFallback(vc_input) 
     --[[Hàm làm đầy dữ liệu màu vector trong trường hợp đầu vào (vc_input) không đủ số lượng màu]]
@@ -138,7 +163,7 @@ function vcfxV2_Base(vcfx_size, vcfx_color, vcfx_range)
     --[[Phần memoization]]
     local memo_check=0
     for check_index=1,(vcV2 and #vcV2 or 0) do
-        if #vcV2[check_index].xc==vcfxV2_lod[1] and #vcV2[check_index].yc==vcfxV2_lod[2] then 
+        if #vcV2[check_index].xc==vcfxV2_lod[1] and #vcV2[check_index].yc==vcfxV2_lod[2] and deep_compare(vcfx_color,vcV2[check_index].color) then 
             vcV2_key = check_index
             memo_check=1
             _G.aegisub.log(vcfx_debug,'[vcfxV2_Base] Dùng lại vùng %d phân giải %dx%d%s',vcV2_key,vcfxV2_lod[1],vcfxV2_lod[2],new_line)
@@ -247,10 +272,10 @@ function vctClipS(text_data,entity_data,offset_input)
     vctClip = {0,0,0,0}
     local newbox={text_data[3]-text_data[1]+offset_input[3],text_data[4]-text_data[2]+offset_input[4]}
     --[[4 vị trí cho tag \clip dạng chữ nhật]]
-    vctClip[1]=text_data[1]-offset_input[3]/2+newbox[1]*entity_data.x0+offset_input[1] -(entity_data.xc==0 and offset_input[5] or 0)
-    vctClip[2]=text_data[2]-offset_input[4]/2+newbox[2]*entity_data.y0+offset_input[2] -(entity_data.yc==0 and offset_input[6] or 0)
-    vctClip[3]=text_data[1]-offset_input[3]/2+newbox[1]*entity_data.x1+offset_input[1] +(entity_data.xc==1 and offset_input[5] or 0)
-    vctClip[4]=text_data[2]-offset_input[4]/2+newbox[2]*entity_data.y1+offset_input[2] +(entity_data.yc==1 and offset_input[6] or 0)
+    vctClip[1]=text_data[1]-offset_input[3]/2+newbox[1]*entity_data.x0+offset_input[1] -(entity_data.x0==0 and offset_input[5] or 0)
+    vctClip[2]=text_data[2]-offset_input[4]/2+newbox[2]*entity_data.y0+offset_input[2] -(entity_data.y0==0 and offset_input[6] or 0)
+    vctClip[3]=text_data[1]-offset_input[3]/2+newbox[1]*entity_data.x1+offset_input[1] +(entity_data.x1==1 and offset_input[5] or 0)
+    vctClip[4]=text_data[2]-offset_input[4]/2+newbox[2]*entity_data.y1+offset_input[2] +(entity_data.y1==1 and offset_input[6] or 0)
     for i=1,#vctClip do
         vctClip[i]=cnfv4(vctClip[i],0)
     end
