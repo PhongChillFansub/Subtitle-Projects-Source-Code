@@ -1,37 +1,33 @@
 script_name = "[Level 2] vcfx"
 script_description = "[Phòng Chill Fansub] Effect màu vector (vector color, \\vc) với VSFilter (không dùng VSFilterMod)"
 script_author = "Phòng Chill Fansub"
-script_version = "beta 2.0.2.1"
---[[fm5 b2.0.2.1 27apr26]]
+script_version = "beta 2.0.2.2"
+--[[fm5 b2.0.2.2 28apr26]]
 --[[Cập nhật vcfx v2.0: cho phép áp dụng nhiều bảng màu 2x2 trong 1 mục tiêu.]]
 --[[Sử dụng independentCounter, interpolate_color_2d của lib 1]]
 vcfx_debug = 5
 vcfxV2_lod_const = nil
 
-function deep_compare(t1, t2)
-    --[[vibe coding (gemini)]]
-    -- 1. Nếu cả hai là cùng một địa chỉ hoặc cùng một giá trị cơ bản (number, string)
-    if t1 == t2 then return true end
-    
-    -- 2. Kiểm tra kiểu dữ liệu, nếu một cái là table cái kia không phải thì chắc chắn khác nhau
-    if type(t1) ~= "table" or type(t2) ~= "table" then return false end
-    
-    -- 3. Duyệt qua tất cả các key của t1 để so sánh với t2
-    for k, v in pairs(t1) do
-        -- Nếu key k không tồn tại trong t2 hoặc giá trị tại k khác nhau
-        if t2[k] == nil or not deep_compare(v, t2[k]) then
-            return false
-        end
-    end
-    
-    -- 4. Kiểm tra ngược lại xem t2 có key nào mà t1 không có không
-    for k, v in pairs(t2) do
-        if t1[k] == nil then
-            return false
-        end
-    end
-    
-    return true
+function deep_compare(t1, t2) 
+    --[[vibe coding (gemini), đã check]]
+    --[[1. Nếu cả hai là cùng một địa chỉ hoặc cùng một giá trị cơ bản (number, string)]]
+    if t1 == t2 then return true end 
+    --[[2. Kiểm tra kiểu dữ liệu, nếu một cái là table cái kia không phải thì chắc chắn khác nhau]]
+    if _G.type(t1) ~= "table" or _G.type(t2) ~= "table" then return false end 
+    --[[3. Duyệt qua tất cả các key của t1 để so sánh với t2]]
+    for k, v in _G.pairs(t1) do 
+        --[[Nếu key k không tồn tại trong t2 hoặc giá trị tại k khác nhau]]
+        if t2[k] == nil or not deep_compare(v, t2[k]) then 
+            return false 
+        end 
+    end 
+    --[[4. Kiểm tra ngược lại xem t2 có key nào mà t1 không có không]]
+    for k, v in _G.pairs(t2) do 
+        if t1[k] == nil then 
+            return false 
+        end 
+    end 
+    return true 
 end
 
 function vcFallback(vc_input) 
