@@ -1,13 +1,13 @@
 script_name = "[Level 2] typing_fx"
 script_description = "[Phòng Chill Fansub] Effect tách cụm từ và đánh chữ (tiếng Việt có dấu) theo quy tắc Telex"
 script_author = "Phòng Chill Fansub"
-script_version = "alpha 5.0.0.36"
---[[fm3 a5.0.0.36 30apr26]]
+script_version = "alpha 5.0.0.37"
+--[[fm3 a5.0.0.37 01may26]]
 --[[sửa lỗi UTFstring2table]]
 --[[Cập nhật v5.0: lấy dữ liệu trực tiếp từ _G.aegisub.text_extents, thay vì phải sử dụng 1 dòng template char]]
 --[[Mục tiêu: lấy dữ liệu chỉ bằng 1 hàm trên dòng template line (template phổ biến cho trans không kara)]]
 --[[to-do: xóa code cũ v4 và viết typingfxV5()]]
---[[Yêu cầu các hàm của lib 1: không có]]
+--[[Yêu cầu các hàm của lib 1: cnfv4]]
 
 function UTFstring2table(text_input,separateStr,mode,index_start,index_end)
     --[[Hàm string->table, tương tự d2t()/draw2table() của lib 1, nhưng dành cho UTF-8 và typing fx, cho phép tách \ N]]
@@ -90,6 +90,12 @@ function getDataV5(direct_mode)
                 bottom=word_bottom,
                 offsetanX=line.width-last_offsetanX,
                 offsetanY=word_bottom,
+                absleft=0,
+                abscenter=0,
+                absright=0,
+                abstop=0,
+                absmiddle=0,
+                absbottom=0
             }
             --[[offsetanX-Y đóng vai trò kích thước khung dòng chữ, sử dụng khi có tag \an]]
             local ex0 = extents(text_inputdata[word_index])
@@ -119,11 +125,30 @@ function getDataV5(direct_mode)
             --[[Reset last_newline_index]]
         end
     end
+
+    --[[Phần tính abs-pos]]
+    local an0=line.styleref.align
+    --[[tag \an, và quy định trong style]]
+    local applyan = {(an0-1)%3,-1*(math.floor((an0-1)/3)-2)}
+    --[[từ trái sang thì [1] là 0,1,2. từ trên xuống thì [2] là 0,1,2]]
+    local applykey={{'left','center','right'},{'top','middle','bottom'}}
+    local applyoff={'offsetanX','offsetanY'}
+    local pos0={line.center, line.middle}
+    local concat=_G.table.concat
+    for word_index=1,#wordV5 do
+        for dim=1,2 do
+            for key_index=1,3 do
+                local key=applykey[dim][key_index]
+                local newkey=concat({'abs',key})
+                wordV5[word_index][newkey]=cnfv4(pos0[dim]+wordV5[word_index][key]-applyan[dim]/2*wordV5[word_index][applyoff[dim]],0)
+            end
+        end
+    end
     return direct_mode and maxloop(#wordV5) or #wordV5
 end
 
 fw=function(index)
-    --[[fastword: tối giản truy nhập wordV5 cho typing_fx]]
+    --[[fastword: tối giản truy nhập wordV5]]
     return wordV5[index or j] 
 end
 
