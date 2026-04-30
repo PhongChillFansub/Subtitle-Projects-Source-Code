@@ -1,8 +1,8 @@
 script_name = "[Level 2] typing_fx"
 script_description = "[Phòng Chill Fansub] Effect tách cụm từ và đánh chữ (tiếng Việt có dấu) theo quy tắc Telex"
 script_author = "Phòng Chill Fansub"
-script_version = "alpha 5.0.0.35"
---[[fm3 a5.0.0.35 12apr26]]
+script_version = "alpha 5.0.0.36"
+--[[fm3 a5.0.0.36 30apr26]]
 --[[sửa lỗi UTFstring2table]]
 --[[Cập nhật v5.0: lấy dữ liệu trực tiếp từ _G.aegisub.text_extents, thay vì phải sử dụng 1 dòng template char]]
 --[[Mục tiêu: lấy dữ liệu chỉ bằng 1 hàm trên dòng template line (template phổ biến cho trans không kara)]]
@@ -67,9 +67,9 @@ function getDataV5(direct_mode)
     local extents = function(text0) return _G.aegisub.text_extents(line.styleref, text0) end
     --[[Đặt word_num, extents để tối ưu hóa]]
     local word_left, word_bottom, last_offsetanX = 0, line.height, 0
-    local new_line, new_line_width = '\\'..'N', extents('\\\\'..'N')
+    local last_newline_index, new_line, new_line_width = 0, '\\'..'N', extents('\\'..'N')
     --[[Đặt word_left, top, offset để tính toán, new_line để nhận diện, tránh bị xóa khi copy vào file sub]]
-    for word_index = 1,word_num do
+    for word_index = 1,#text_inputdata do
         if text_inputdata[word_index]~=new_line then
             --[[Nếu không phải kí tự xuống dòng, xử lí như bình thường]]
             local word_stripped = text_inputdata[word_index]:gsub(' ','')
@@ -101,22 +101,31 @@ function getDataV5(direct_mode)
             --[[bottom dòng dưới tăng thêm 1 dòng]]
             --[[]]
             --[[Thay đổi khung dòng chữ các từ mới]]
+            local msg='[typingfxV5] new_line %d: %f= %f + %f + %f.%s'
+            _G.aegisub.log(3,msg,word_index ,last_offsetanX + word_left + new_line_width, last_offsetanX, word_left, new_line_width,string.char(10))
             last_offsetanX = last_offsetanX + word_left + new_line_width
             --[[last_offsetanX là phần chiều dài từ kí tự xuống dòng trở về trước]]
             for change_index = 1,#wordV5 do
-                wordV5[change_index].offsetanX=word_left
-                --[[Chiều dài khung mới: chiều dài liền trước kí tụ xuống dòng]]
+                if change_index > last_newline_index then 
+                    wordV5[change_index].offsetanX=word_left
+                end
+                --[[Chiều dài khung mới: chiều dài liền trước kí tự xuống dòng]]
                 wordV5[change_index].offsetanY=word_bottom
                 --[[Chiều cao khung mới: bổ sung thêm dòng mới từ kí tự xuống dòng về sau]]
             end
             word_left = 0
             --[[Reset word_left]]
+            last_newline_index=#wordV5
+            --[[Reset last_newline_index]]
         end
-
     end
     return direct_mode and maxloop(#wordV5) or #wordV5
 end
 
+fw=function(index)
+    --[[fastword: tối giản truy nhập wordV5 cho typing_fx]]
+    return wordV5[index or j] 
+end
 
 --[[lib 1 cũ (update typing fx v4, prev: pj 44M7): thư viện hàm. {;;;;;} cmt() {;;;;;} div(<>,<>) {;;;;;} cnfv3(value, precision) {;;;;;} UTFp(string, index) {;;;;;} decode1(index,max1,mode) {;;;;;} table2string(tablein) {;;;;;} tableConcat(table1,table2) {;;;;;} t2d(tablein,separateStr) {;;;;;} aconv(angle,mode) {;;;;;} tableConcs({ {table1}, ... , {tableN} }) {;;;;;} maxfromTable(table) {;;;;;} res[1;2] {;;;;;} fpsget(1;2) {;;;;;} decode2(index,maxTable,plane) {;;;;;} multiLoop(tableInput) {;;;;;} jm(a,b) {;;;;;} polarPos(x0,y0,r0,a0,precision) {;;;;;} reportError(text) {;;;;;} d2t(tablein,separateStr)]]
 --[[cmt(){;;;;;} div(2) chia lấy nguyên, trước/sau{;;;;;} cnfv3(value, precision): string.format("%.<precision>f",value) (trống = 0){;;;;;} UTFp(string, index) trả string UTF-8 thứ index*. index 0 trả độ dài string. index*: nếu index > độ dài hoặc index < 0 thì lặp lại theo chu kì. VD: chữ "Người" (độ dài 5), index 5,10,15,v.v. và -1,-6,-11,v.v. đều trả về index 5 ("i"), index -2 trả về index 4 ("ờ"){;;;;;} decode1(index,max1,mode): chia dãy 1 chiều thành mảng 2 chiều (a,b) với 1 <= a <= max1; 1 <= b; đầu ra theo mode: 1: a, 2: b.{;;;;;}table2string(tablein): đầu ra từ bảng thành xâu kí tự, thứ tự theo số.{;;;;;} tableConcat(table1,table2): hợp nhất bảng 2 vào sau bảng 1.{;;;;;} t2d(tablein,separateStr): tách phần tử bằng dấu cách (mặc định, hoặc separateStr) (mặc định: dấu cách, tức table sang dạng lệnh vẽ){;;;;;} aconv(angle,mode): đổi góc theo chế độ: 0: deg -> deg / rad -> rad, 1: deg -> rad, 2: n -> n*pi, 3: rad -> deg {;;;;;} tableConcs({ {table1}, ... , {tableN} }): Hợp nhất các bảng table1, ... , tableN. (tableConcat nhưng rộng hơn) {;;;;;} maxfromTable(table): lấy số lớn nhất trong bảng số table. {;;;;;} res[i]: độ phân giải chiều: 1: x, 2: y. {;;;;;} fpsget(mode): 1: fps, 2: spf {;;;;;} decode2(index,maxTable,plane): như decode1 nhưng nhiều chiều hơn, tổng quát hơn. {;;;;;} multiLoop({maxj_1,maxj_2,...,maxj_n}): đầu ra lặp lại theo chiều (sử dụng hàm decode2()). Đầu ra: jm[j][plane] hoặc recall.j[j][plane]{;;;;;} jm(a,b): đầu ra jm[j][plane], dạng jm(j,plane) {;;;;;} polarPos(x0,y0,r0,a0,precision): tọa độ cực, {góc deg} (đầu ra dạng "pos1,pos2", dùng hàm cnfv3() nên có yêu cầu precision) {;;;;;} reportError(text): báo lỗi {;;;;;} d2t(tablein,separateStr): trái ngược với table2string(t2d()) từ bảng thành string có phân cách; d2t() nhận string có phân cách, biến thành table. {;;;;;}]]
@@ -328,7 +337,8 @@ function typingfxV4()
             for i1 = 1,#dataGetList,1 do 
                 karawork[#karawork][dataGetList[i1]] = typingV4[#typingV4].char[i0][dataGetList[i1]] 
             end 
-            karawork[#karawork].li = #karawork karawork[#karawork].start_char=i0 
+            karawork[#karawork].li = #karawork 
+            karawork[#karawork].start_char=i0 
             karawork[#karawork].end_char=i0 
             if #karawork>1 then 
                 if karawork[#karawork-1].text:match('%s+') then 
