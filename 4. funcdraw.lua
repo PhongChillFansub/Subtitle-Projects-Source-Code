@@ -1,9 +1,9 @@
 script_name = "[Level 2] funcdraw"
 script_description = "[Phòng Chill Fansub] Effect công cụ lệnh vẽ Aegisub"
 script_author = "Phòng Chill Fansub"
-script_version = "beta 3.2.2.0"
---[[fm4 b3.2.2.0 02may26]]
---[[Độc lập khỏi lib 1]]
+script_version = "beta 3.2.2.1"
+--[[fm4 b3.2.2.1 02may26]]
+--[[Sử dụng tableMerges và cnfv4 của lib 1]]
 
 fd3LastPos = {0,0}
 --[[fd3LastPos {x,y}: điểm vẽ gốc ban đầu/liền trước]]
