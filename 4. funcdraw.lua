@@ -1,9 +1,9 @@
 script_name = "[Level 2] funcdraw"
 script_description = "[Phòng Chill Fansub] Effect công cụ lệnh vẽ Aegisub"
 script_author = "Phòng Chill Fansub"
-script_version = "beta 3.2.1.02"
---[[fm4 b3.2.1.02 12apr26]]
---[[Thay đổi định dạng commit]]
+script_version = "beta 3.2.2.0"
+--[[fm4 b3.2.2.0 02may26]]
+--[[Độc lập khỏi lib 1]]
 
 fd3LastPos = {0,0}
 --[[fd3LastPos {x,y}: điểm vẽ gốc ban đầu/liền trước]]
@@ -46,12 +46,12 @@ function findRad(x0,y0,x1,y1)
 
 function findPos(x0,y0,r0,rad,mode) 
     local out = {x0+r0*math.cos(rad), y0+r0*math.sin(rad)} 
-    if mode == nil then 
+    if not mode then 
         return out
     end
     return out[mode] or _G.table.concat(out,',') 
 end
---[[findPosRad(x0,y0,r0,a0,mode): tính điểm từ gốc, bán kính, góc rad cho trước. (ko làm tròn)]]
+--[[findPos(x0,y0,r0,a0,mode): tính điểm từ gốc, bán kính, góc rad cho trước. (ko làm tròn)]]
 --[[Chế độ đầu ra: 1:x, 2:y, nil:table {x,y}, khác:string 'x,y']]
 
 function draw(allTable)
@@ -63,7 +63,7 @@ function precisionDraw(precision,allTable)
     local processData = tableMerges(allTable)
     local tonum = _G.tonumber
     for i=1,#processData do
-        if tonum(processData[i])~= nil then
+        if tonum(processData[i]) then
             processData[i]=cnfv4(processData[i],precision)
         end
     end
@@ -73,7 +73,6 @@ end
 
 function semiCircleRad(r0,a0,a1)
     --[[a0 là pha ban đầu, a1 là giá trị góc kéo từ lastPos đến cp3. giới hạn a1 không quá 90 độ]]
-    --[[hàm findPos của các tọa độ không đặt giá trị input thứ 5 (mode) -> center có dạng {x,y}]]
     local r1 = r0*bezierMagicNumber(a1)
     local center = findPos(
         fd3LastPos[1], 
@@ -109,7 +108,7 @@ function circleRad(r0,a0,a1)
     --[[a0 là pha ban đầu, a1 là giá trị góc kéo từ lastPos đến cp3, không quá 360 độ]]
     local circlePart = {}
     local sign = a1/(math.abs(a1)==0 and 1 or math.abs(a1))
-    a1 = math.abs(_G.clamp(a1,aconv(-360,1),aconv(360,1)))
+    a1 = math.abs(_G.clamp(a1,math.rad(-360),math.rad(360)))
     --[[Từ giờ, a1_cũ = sign * a1_mới]]
     for i=1,math.ceil(a1)/math.pi do
         --[[Vòng lặp trong số lần góc a1 lớn hơn 90 độ, tức chia nhỏ a1 thành các đoạn không lớn hơn 90 độ]]
@@ -194,8 +193,9 @@ function rotate(radang,originPos,allTable)
     --[[Cơ chế: tính toán tọa độ mới ngay khi rà soát tọa độ ban đầu bằng findPos(pos0,findDist(pos0,pos1),radian).]]
     local numberCount, pairX, pairY = 0, 0, 0
     --[[numberCount đếm từ 0, nên ở đây 0 (%2==0) là x, 1 (%2==1) là y.]]
+    local tonum=_G.tonumber
     for i0 = 1,#processData do 
-        if _G.tonumber(processData[i0])~=nil then 
+        if tonum(processData[i0]) then 
             if numberCount%2==0 then 
                 --[[Đối với tọa độ x: pairX = x]] 
                 pairX = processData[i0]
