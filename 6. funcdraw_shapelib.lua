@@ -1,9 +1,9 @@
 script_name = "[Level 2] funcdraw_shapelib"
 script_description = "[Phòng Chill Fansub] Thư viện hình vẽ bằng lệnh vẽ của funcdraw fx"
 script_author = "Phòng Chill Fansub"
-script_version = "beta 3.2.1.5"
---[[fm6 b3.2.1.5 29apr26]]
---[[Sử dụng funcdraw]]
+script_version = "beta 3.2.2.0"
+--[[fm6 b3.2.2.0 02may26]]
+--[[Sử dụng funcdraw v3.2.2.0. độc lập khỏi lib 1]]
 
 --[[Các hàm funcdraw:]]
 --[[fd3m(x,y): lệnh đặt điểm vẽ gốc mới (lệnh vẽ 'm'). đầu ra {'m',x,y}]]
@@ -12,7 +12,7 @@ script_version = "beta 3.2.1.5"
 --[[bezierMagicNumber(radang): hệ số Bezier của góc rad, dùng cho vẽ cung tròn. (ko làm tròn)]]
 --[[findDist(x1,y1,x2,y2): tính khoảng cách (ko làm tròn)]]
 --[[findRad(x0,y0,x1,y1): (2-point-to-angle) tìm góc rad giữa vector A(x0,y0)B(x1,y1) và Ox (ko làm tròn)]]
---[[findPosRad(x0,y0,r0,a0,mode): tính điểm từ gốc, bán kính, góc rad cho trước. (ko làm tròn)]]
+--[[findPos(x0,y0,r0,a0,mode): tính điểm từ gốc, bán kính, góc rad cho trước. (ko làm tròn)]]
 --[[Chế độ đầu ra: 1:x, 2:y, nil:table {x,y}, khác:string 'x,y']]
 --[[precisionDraw(precision,allTable): vẽ có làm tròn]]
 --[[circleRad(r0,a0,a1): vẽ cung tròn bất kì (không lớn hơn 360 độ), từ pha a0, kéo góc a1.]]
@@ -45,7 +45,67 @@ function shapeRoundRectangle(topLeftCornerPos,bottomRightCornerPos,radius)
     }) 
 end
 
+moon2=function(t,pow,originPos,rotateAngle,cir1,cir2)
+    --[[Hàm moon2 cho pj 45c v1.1b2]]
+    --[[Dữ liệu của moon1 (pj 45c a1 và v1b1): pow=2]]
+    --[[Dữ liệu của moon1_dev (pj 45a): pow=2.8]]
+    if not _G.tonumber(t) then 
+        return nil 
+    end
+    local t=_G.clamp(_G.tonumber(t),0,1)
+    local ease = {(1-t)^pow}
+    --[[Xử lí đầu vào t trong 0..1]] 
+    local dymorgPos = {-45*ease[1],-120*ease[1]}
+    return { 
+        rotate(
+            math.rad(-7),
+            {dymorgPos[1]-13,dymorgPos[2]-63} ,
+            { 
+                fd3m(dymorgPos[1]-13-194,dymorgPos[2]-66), 
+                circleRad(194,math.rad(-180),math.rad(-257)) 
+            }
+        ), 
+        fd3n(
+            _G.table.unpack( 
+                findPos(dymorgPos[1]-66,dymorgPos[1]-114,148,math.rad(cir2[4]))
+            )
+        ), 
+        circleRad(148,math.rad(-62),math.rad(214)) 
+    }
+end
 
+ring2=function(t,pow,angleRange)
+    --[[Hàm ring2 cho pj 45c v1.1b2]]
+    --[[Dữ liệu của ring1 (pj 45c a1 và v1b1): pow=1.3, angleRange={220,360}]]
+    --[[Dữ liệu của ring1_dev (pj 45a): pow=1.7, angleRange={232,360}]]
+    if not _G.tonumber(t) then 
+        return nil 
+    end
+    local t=_G.clamp(_G.tonumber(t),0,1)
+    local ease = {1-(1-t)^pow}
+    --[[Xử lí đầu vào t trong 0..1]]
+    local angle = _G.interpolate(ease[1],220,360)
+    --[[stretch(stretchAngle,scale,originPos,allTable[,postAngle]): kéo hình theo tỉ lệ*góc kéo từ mốc,]]
+    --[[(postAngle là góc xoay mới (coi như 1 lệnh rotate phía sau.)]]
+    return stretch( 
+        0,1.9,{0,0},
+        { 
+            fd3m(_G.table.unpack( 
+                findPos(0,-2,149,math.rad(-55-angle),0)
+            )), 
+            circleRad(149,math.rad(-55-angle),math.rad(angle)), 
+            fd3n(_G.table.unpack(
+                findPos(0,0,165,aconv(-55,1))
+            )), 
+            circleRad(
+                165,math.rad(-55),math.rad(-angle)
+            ) 
+        }, 
+        math.rad(-21)
+    ) 
+end
+
+--[[Phần hình vẽ cũ]]
 --[[demo1: hình vẽ từ tệp phát triển (trước khi làm pj 45a, 45c)]]
 demo1 = { 
     stretch(0,1.9,{0,-2},{ 
@@ -80,118 +140,8 @@ demo2_ring = {
 --[[Vẽ 2 hình tròn (cùng 1 lần vẽ), rồi kéo giãn cả 2 thành elip]]
 --[[Hình vẽ thử nghiệm cho pj 45]]
 
-moon1_dev = function(j0,maxj0) 
-    if j0==nil or maxj0==nil or j0<0 then 
-        return nil 
-    end 
-    local startingPoint = {-45,-120} 
-    local ease = {1-(1-_G.clamp(j0/maxj0,0,1))^2.8} 
-    local movingOffset = {-1*startingPoint[1]*(-1+ease[1] ),-1*startingPoint[2]*(-1+ease[1])} 
-    return { 
-        rotate(
-            aconv(-7,1),
-            {-13+movingOffset[1],-63+movingOffset[2]},{ 
-                fd3m(-13-194+movingOffset[1],-63+movingOffset[2]), 
-                circleRad(194,math.rad(-180),math.rad(-257)) 
-            }
-        ), 
-        fd3n(_G.table.unpack( findPos(
-            -66+movingOffset[1],
-            -114+movingOffset[2],
-            148,
-            math.rad(-62)
-        ))), 
-        circleRad(148,math.rad(-62),math.rad(214)) 
-    }
-end
---[[Hình moon1 của tệp phát triển v3.1 và pj 45a]]
 
-ring1_dev = function(j0,maxj0) 
-    if j0==nil or maxj0==nil or j0<0 then 
-        return nil 
-    end 
-    local ease = {1-(1-_G.clamp(j0/maxj0,0,1))^1.7} 
-    local angleRange = {232,360} 
-    return stretch(0,1.9,{0,0},{
-        fd3m(_G.table.unpack(findPos(
-            0,-2,149,
-            math.rad(-55-angleRange[1]-(angleRange[2]-angleRange[1])*ease[1])
-        ))), 
-        circleRad(
-            149,
-            math.rad(-55-angleRange[1]-(angleRange[2]-angleRange[1])*ease[1]),
-            math.rad(angleRange[1]+(angleRange[2]-angleRange[1])*ease[1])
-        ), 
-        fd3n(_G.table.unpack(findPos(
-            0,0,165,math.rad(-55)
-        ))), 
-        circleRad(
-            165,
-            math.rad(-55),
-            math.rad(-angleRange[1]-(angleRange[2]-angleRange[1])*ease[1])
-        )
-    }, math.rad(-21) ) 
-end
---[[Hình ring1 của tệp phát triển v3.1 và pj 45a]]
 
-function moon1(j0,maxj0) 
-    if j0==nil or maxj0==nil or j0<0 then return nil end 
-    local startingPoint = {-45,-120} 
-    local ease = {1-(1-_G.clamp(j0/maxj0,0,1))^2} 
-    local movingOffset = {-1*startingPoint[1]*(-1+ease[1] ),-1*startingPoint[2]*(-1+ease[1])} 
-    return _G.table.unpack({ 
-        rotate(
-            aconv(-7,1),
-            {
-                -13+movingOffset[1],
-                -63+movingOffset[2]
-            },
-            { 
-                fd3m(-13-194+movingOffset[1],-63+movingOffset[2]), 
-                circleRad(194,aconv(-180,1),aconv(-257,1)) 
-            }
-        ), 
-        fd3n(
-            _G.table.unpack( 
-                findPosRad(-66+movingOffset[1],-114+movingOffset[2],148,aconv(-62,1),0)
-            )
-        ), 
-        circleRad(148,aconv(-62,1),aconv(214,1)) 
-    }) 
-end
---[[Hình moon1 của pj 45c]]
+    
 
-function ring1(j0,maxj0) 
-    if j0==nil or maxj0==nil or j0<0 then return nil end 
-    local ease = {1-(1-_G.clamp(j0/maxj0,0,1))^1.3} 
-    local angleRange = {220,360} 
-    return stretch( 
-        aconv(0,1) ,
-        1.9,
-        {0,0},
-        { 
-            fd3m( 
-                _G.table.unpack( 
-                    findPosRad(
-                        0,-2,149,
-                        aconv(-55-angleRange[1]-(angleRange[2]-angleRange[1])*ease[1],1),
-                        0)
-                    )
-            ), 
-            circleRad(
-                149,
-                aconv(-55-angleRange[1]-(angleRange[2]-angleRange[1])*ease[1],1),
-                aconv(angleRange[1]+(angleRange[2]-angleRange[1])*ease[1],1)
-            ), 
-            fd3n( _G.table.unpack( findPosRad(0,0,165,aconv(-55,1),0)) ), 
-            circleRad(
-                165,
-                aconv(-55,1),
-                aconv(-angleRange[1]-(angleRange[2]-angleRange[1])*ease[1],1)
-            ) 
-        }, 
-        aconv(-21,1)
-    ) 
-end
---[[Hình ring1 của pj 45c]]
 
