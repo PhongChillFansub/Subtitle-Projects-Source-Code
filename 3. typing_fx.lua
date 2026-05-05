@@ -1,8 +1,8 @@
 script_name = "[Level 2] typing_fx"
 script_description = "[Phòng Chill Fansub] Effect tách cụm từ và đánh chữ (tiếng Việt có dấu) theo quy tắc Telex"
 script_author = "Phòng Chill Fansub"
-script_version = "alpha 5.0.0.38"
---[[fm3 a5.0.0.38 05may26]]
+script_version = "alpha 5.0.0.39"
+--[[fm3 a5.0.0.39 05may26]]
 --[[sửa lỗi UTFstring2table]]
 --[[Cập nhật v5.0: lấy dữ liệu trực tiếp từ _G.aegisub.text_extents, thay vì phải sử dụng 1 dòng template char]]
 --[[Mục tiêu: lấy dữ liệu chỉ bằng 1 hàm trên dòng template line (template phổ biến cho trans không kara)]]
@@ -45,8 +45,8 @@ function UTFstring2table(text_input,separateStr,mode,index_start,index_end)
     return table_output
 end
 
-function getDataV5(direct_mode)
-    if direct_mode == 'disable' then return '' end
+function getDataV5(mode)
+    if not mode then return '' end
     --[[Hàm lấy dữ liệu chữ bằng hàm aegisub.text_extents()]]
     --[[Đầu vào: line.styleref, line.text_stripped (tự động)]]
     wordV5 = {}
@@ -145,7 +145,7 @@ function getDataV5(direct_mode)
             end
         end
     end
-    return direct_mode and maxloop(#wordV5) or #wordV5
+    return mode=='loop' and maxloop(#wordV5) or #wordV5
 end
 
 fw=function(index)
