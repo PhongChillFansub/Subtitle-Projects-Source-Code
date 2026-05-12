@@ -252,3 +252,36 @@ Comment: 0,0:00:00.00,0:00:00.00,30M3_LR,fallingCB_M,0,0,0,template syl noblank 
 	\shad0
 	\p1
 }m 5 2 l 7 0 b 9 1 10 4 10 6 l 5 15 l 0 6 b 0 4 1 1 3 0 l 5 2
+
+
+
+
+--[[srtkara]]
+TLdata = (_G.type(TLdata)=='nil' and {} or TLdata) 
+_G.table.insert(TLdata,orgline);;;;; 
+
+srtkara_update4syl = _G.type(srtkara_update4syl)=='function' and srtkara_update4syl or function() 
+  local work = line.kara 
+  local addunit = {'<b><u>','</u></b>',''} 
+  local concat = _G.table.concat 
+  local output = {} 
+  for i=1,#work do 
+    local unit = work[i].text:gsub("([%(%)])", "%1")
+    local unitsps = work[i].text_spacestripped:gsub("([%(%)])", "%1")
+    addunit[3]=unit:gsub(unitsps:gsub("([%(%)])", "%%%1"),'')
+    if i==syl.i then 
+      unit = concat({addunit[1] or '',unitsps,addunit[2] or '',addunit[3] or ''}) 
+    end 
+    output[#output+1] = unit 
+  end 
+  return concat(output) 
+end;;;;; 
+
+srtkara_addTLdata = _G.type(srtkara_addTLdata)=='function' and srtkara_addTLdata or function() 
+	for i=1,#TLdata do 
+		if TLdata[i].start_time==orgline.start_time and TLdata[i].end_time==orgline.end_time then 
+			return TLdata[i].text_stripped 
+		end 
+	end 
+	return '' 
+end
