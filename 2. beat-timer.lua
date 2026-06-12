@@ -2,7 +2,7 @@ script_name = "[Level 2] beat-timer"
 script_description = "[Phòng Chill Fansub] Bộ đếm thời gian và nhịp"
 script_author = "Phòng Chill Fansub"
 script_version = "beta 6.0.2.5"
---[[fm2 b6.0.2.5 12jun26]]
+--[[fm2 b6.0.2.6 12jun26]]
 --[[thêm (lại) frame timer trên update beat timer và hàm frame timer độc lập]]
 --[[update v6.0: cho phép ghép nhịp khác tempo trên cùng 1 bar, tùy chọn update theo beat hoặc frame,...]] 
 
@@ -59,12 +59,14 @@ function beatV6(start_offset,time_mode_enable)
         if step==1 then 
             beat=count(beat,(bpm[area_index][2]<1 and bpm[area_index][2] or 1)*bpm[area_index][3]) 
             if beat==1 then 
+                local last_bar = bar
                 bar=count(bar,math.ceil(bpm[area_index][2])) 
                 if bar==1 then 
                     area_index=count(area_index,#bpm) 
                     step_dur=60000/bpm[area_index][1]/bpm[area_index][4]
                     if bpm[area_index][5]==1 then step,beat=1,1 end
                     if area_index==1 then bar=bpm[area_index][5] end
+                    bar = bar + last_bar
                 end
             end
         end
