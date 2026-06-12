@@ -1,8 +1,8 @@
 script_name = "[Level 2] beat-timer"
 script_description = "[Phòng Chill Fansub] Bộ đếm thời gian và nhịp"
 script_author = "Phòng Chill Fansub"
-script_version = "beta 6.0.2.5"
---[[fm2 b6.0.2.6 12jun26]]
+script_version = "beta 6.0.2.7"
+--[[fm2 b6.0.2.7 12jun26]]
 --[[thêm (lại) frame timer trên update beat timer và hàm frame timer độc lập]]
 --[[update v6.0: cho phép ghép nhịp khác tempo trên cùng 1 bar, tùy chọn update theo beat hoặc frame,...]] 
 
@@ -53,23 +53,24 @@ function beatV6(start_offset,time_mode_enable)
     --[[2. Tính toán dữ liệu]]
     local area_index,step_dur=#bpm,0
     local _,bar,beat,step,_ = _G.table.unpack(bpm[area_index])
+    local last_bar = 0
     --[[Cấu trúc bpm[i]:{bpm, bar, beat/bar, step/beat, merge_signal}]]
     for i=1,beatV6c do
         step=count(step,bpm[area_index][4])
         if step==1 then 
             beat=count(beat,(bpm[area_index][2]<1 and bpm[area_index][2] or 1)*bpm[area_index][3]) 
             if beat==1 then 
-                local last_bar = bar
+                if bar+1 > math.ceil(bpm[area_index][2]) then last_bar = last_bar + bar end
                 bar=count(bar,math.ceil(bpm[area_index][2])) 
                 if bar==1 then 
                     area_index=count(area_index,#bpm) 
                     step_dur=60000/bpm[area_index][1]/bpm[area_index][4]
                     if bpm[area_index][5]==1 then step,beat=1,1 end
-                    bar = (area_index==1 and bpm[area_index][5] or 1) + last_bar
+                    last_bar = (area_index==1 and bpm[area_index][5] or last_bar) 
                 end
             end
         end
-        beatV6d.bar[i],beatV6d.beat[i],beatV6d.step[i],beatV6d.area_index[i]=bar,beat,(bpm[area_index][4]>1 and step or 0),area_index
+        beatV6d.bar[i],beatV6d.beat[i],beatV6d.step[i],beatV6d.area_index[i]=bar+last_bar,beat,(bpm[area_index][4]>1 and step or 0),area_index
         beatV6d.abs_start[i]=start_offset
         start_offset=start_offset+step_dur
         beatV6d.abs_end[i]=start_offset
