@@ -65,8 +65,7 @@ function beatV6(start_offset,time_mode_enable)
                     area_index=count(area_index,#bpm) 
                     step_dur=60000/bpm[area_index][1]/bpm[area_index][4]
                     if bpm[area_index][5]==1 then step,beat=1,1 end
-                    if area_index==1 then bar=bpm[area_index][5] end
-                    bar = bar + last_bar
+                    bar = (area_index==1 and bpm[area_index][5] or 1) + last_bar
                 end
             end
         end
