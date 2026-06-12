@@ -1,8 +1,8 @@
 script_name = "[Level 2] beat-timer"
 script_description = "[Phòng Chill Fansub] Bộ đếm thời gian và nhịp"
 script_author = "Phòng Chill Fansub"
-script_version = "beta 6.0.2.4"
---[[fm2 b6.0.2.4 18apr26]]
+script_version = "beta 6.0.2.5"
+--[[fm2 b6.0.2.5 12jun26]]
 --[[thêm (lại) frame timer trên update beat timer và hàm frame timer độc lập]]
 --[[update v6.0: cho phép ghép nhịp khác tempo trên cùng 1 bar, tùy chọn update theo beat hoặc frame,...]] 
 
@@ -68,7 +68,7 @@ function beatV6(start_offset,time_mode_enable)
                 end
             end
         end
-        beatV6d.bar[i],beatV6d.beat[i],beatV6d.step[i],beatV6d.area_index[i]=bar,beat,step,area_index
+        beatV6d.bar[i],beatV6d.beat[i],beatV6d.step[i],beatV6d.area_index[i]=bar,beat,(bpm[area_index][4]>1 and step or 0),area_index
         beatV6d.abs_start[i]=start_offset
         start_offset=start_offset+step_dur
         beatV6d.abs_end[i]=start_offset
